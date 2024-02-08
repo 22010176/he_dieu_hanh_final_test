@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "fss.h": "c",
+        "vsfs.h": "c",
+        "stdlib.h": "c",
+        "stdint.h": "c",
+        "utilities.h": "c",
+        "stdio.h": "c",
+        "string.h": "c"
+    }
+}
