@@ -9,7 +9,7 @@
 #define _randRange(start, end, step) _rand((int)((end - start) / step)) * step + start
 #define _for(start, end, step) for (uint32_t i = start; i < end; i += step)
 
-// Kich thuoc: 4 + 4 + 4 + 4 + 4 + 4 = 4 * 6 = 24 byte
+// Kich thuoc: 4 + 4 + 4 + 4 + 4 = 4 * 5 = 20 byte
 typedef struct Super Super;
 struct Super {
     uint32_t id;                                // ma id
@@ -17,7 +17,6 @@ struct Super {
     uint32_t inode_num;                         // so inode
     uint32_t chunk_size;                        // kich thuoc chunk
     uint32_t block;                             // Kich thuoc bo nho nho nhat co the doc
-    uint32_t inode_address;                     // dia chi inode dau tien
 };
 
 // Kich thuoc: 1 + 15 * 4 + 4 = 65 byte

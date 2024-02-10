@@ -21,4 +21,5 @@ void* v_write(const char* path, char* data);
 bool v_unlink(char* path);
 bool v_link(char* src, char* dst);
 
+void _main(void* data);
 #endif
