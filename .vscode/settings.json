@@ -1,12 +1,14 @@
 {
     "files.associations": {
-        "fss.h": "c",
-        "vsfs.h": "c",
         "stdlib.h": "c",
         "stdint.h": "c",
-        "utilities.h": "c",
         "stdio.h": "c",
         "string.h": "c",
-        "stdbool.h": "c"
+        "ctype.h": "c",
+        "types.h": "c",
+        "utils.h": "c",
+        "cmath": "c",
+        "time.h": "c",
+        "conio.h": "c"
     }
 }

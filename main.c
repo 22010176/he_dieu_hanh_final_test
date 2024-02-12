@@ -1,304 +1,127 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <math.h>
-// #include <stdbool.h>
-
-#define _s                                              fflush(stdin); scanf
-#define _rand(x)                                        rand() % x + 1
-#define _randRange(start, end, step)                    _rand((int)((end - start) / step)) * step + start
-#define FreeM(x)                                        for (int i = 0; x[i] != NULL; free(x[i++])); free(x)
-
-#define DIRECTORY                                       1
-#define FILE                                            2
-
-// char             1 byte              8   bit     (*)
-// int              4 byte              32  bit
-// long long        8 byte              64  bit
-// float            4 byte              32  bit
-// double           8 byte              64  bit
-// unsigned         no negative
-unsigned char* data = NULL; // 4KB * 16 (1 line) * 4 = 256KB
-
-typedef struct Bitmap Bitmap;
-struct Bitmap { unsigned int size, chunk, address; };
-
-typedef struct Inode Inode;
-struct Inode {
-    unsigned int inode_number;                              // Inode's number        
-    unsigned int type;                                      // File type (1 = D, 2 = F)
-    unsigned int size;                                      // Size of the file
-    unsigned int link;                                      // Count links
-    unsigned int blocks[12];                                // Data's address (12 direct pointer)
-    // 4 + 4 + 4 * 12 + 4 + 4 = 64 byte
-};
-
-typedef struct InodeTable InodeTable;
-struct InodeTable { char name[28]; unsigned int inode_number; };
-
-// Name                 Chunk
-// Super                0       
-// Inodes Bitmap        1
-// Data Bitmap          2           
-// Inodes               3 - 7
-// Data                 8 - 63
+#include "utils.h"
 
 // Setup parameter              
 // Use store and read it in Super later
-const unsigned int diskSize = 4 * 1024 * 16 * 4;                    // byte (256KB)
-const unsigned int chunkSize = 4096;                                // byte (4KB)
+uint8_t* disk;
+const uint32_t dSize = 4 * 1024 * 16 * 4;                    // byte (256KB)
+const uint32_t cSize = 256;                                  // byte (4KB)
 
-const Bitmap inodeBitmap = { .size = (chunkSize * 5) / sizeof(Inode), .chunk = 1, .address = 3 * chunkSize };
-const Bitmap dataBitmap = { .size = 56,.chunk = 2, .address = 8 * chunkSize };
+const Bitmap iBitmap = { .size = (cSize * 5) / _s(Inode), .chunk = 1, .address = 3 * cSize };
+const Bitmap dBitmap = { .size = 56,.chunk = 2, .address = 8 * cSize };
 
-const unsigned int inodeLinks = 12;
-unsigned int rootInode;
+// Address
+uint8_t* MappingAddress(uint32_t address);
+uint32_t GetDataAddress(uint32_t chunkNumber);
 
-void* _m(size_t size);
-void* _r(void* p, size_t size);
+// Bitmap
+uint8_t CheckCell(Bitmap bm, uint32_t i);
+void FreeCell(Bitmap bm, uint32_t i);
+uint8_t GetFreeCell(Bitmap bm);
 
-char** SplitString(char* string, char* p);
+// Read-Write-Debug
+void Write(uint32_t address, uint8_t* data, uint32_t size);
+uint8_t* Read(uint32_t address, uint32_t size);
+void Print(uint8_t* address, uint32_t size);
 
-char* MappingAddress(unsigned int address);
-unsigned int GetAddressFromChunk(unsigned int chunk);
-unsigned int GetChunkFromAddress(unsigned int address);
-unsigned int GetInodeAddress(unsigned int inode);
-unsigned int GetDataAddress(unsigned int data);
+uint32_t* WriteChunk(uint8_t* data, uint32_t size);
+uint32_t* UpdateChunk(uint32_t chunk, uint8_t* data, uint32_t size);
+uint8_t* ReadChunk(uint32_t* chunk);
 
-int CheckFreeChunk(Bitmap bitmap, int number);
-unsigned int GetFreeChunk(Bitmap bitmap);
-void FreeChunk(Bitmap bitmap, int number);
+void Init() {
+    disk = _ca(dSize);
 
-unsigned int IsExistPath(char** path);
-unsigned int Mkdir(char* path);
-Inode CreateDirectory(int parent, char* name);
-int WriteData(unsigned int address, char* dat, int size);
-
-unsigned int ReadBit(char x, int bit);
-char* ReadData(void* dest, unsigned int address, int size);
-void PrintData(char* data, int size);
-
-void PrintInode(Inode inode) {
-    printf("\n_INODE____________________________________________________\n");
-    printf("number: %-6d size: %-6d link: %-6d type: %-6s\nblocks: ", inode.inode_number, inode.size, inode.link, inode.type == DIRECTORY ? "directory" : "file");
-    for (int i = 0; i < inodeLinks;printf(" %d |", inode.blocks[i++]));
-
-    if (inode.type == FILE) {
-
-        return;
-    }
-    printf("\n_DIRECTORY________________________________________________\n");
-    int len = inode.size / sizeof(InodeTable);
-
-    InodeTable table[len];
-    ReadData((char*)table, GetDataAddress(inode.blocks[0]), sizeof(table));
-
-    for (int i = 0; i < len; i++) printf("  %-4d %s\n", table[i].inode_number, table[i].name);
-
-    printf("\n");
-}
-
-void Initialize() {
-    srand(time(NULL));
-    printf("Initialize VFSF...\n");
-
-    // Allocate memory
-    data = _m(diskSize);
-
-    // Setup Bitmap
-
-    // Create root directory
-    Inode root = CreateDirectory(-1, "");
-    PrintInode(root);
-
-    Inode test;
-    ReadData((char*)&test, GetInodeAddress(root.inode_number), sizeof(Inode));
-
-    if (root.blocks[0] != test.blocks[0] || root.inode_number != test.inode_number || root.size != test.size) {
-        printf("Failed Creating Root Folder");
-        exit(-1);
+    uint32_t size = 60;
+    uint32_t x[size];
+    for (int i = 0; i < size; i++) {
+        x[i] = rand() * rand() * rand();
     }
 
-    printf("\nSuccessful Initialize\n");
+    uint32_t* chunk = WriteChunk((uint8_t*)x, _s(x));
+    uint32_t ss = 33;
+
+    uint32_t* chunk2 = UpdateChunk(chunk[0], (uint8_t*)&ss, 4);
+    // printf("%d %d\n", chunk[0], chunk[1]);
+    uint32_t* a = (uint32_t*)ReadChunk(chunk2);
+
+    for (int i = 0; i < size; i++) {
+        if (a[i] == x[i]) continue;
+        printf("%-10u %-10u\n", a[i], x[i]);
+    }
+
+    free(a);
+    free(chunk);
 }
 
-void CleanUp() { free(data); }
+void CleanUp() {
 
-int main() {
-    Initialize();
+    free(disk);
+}
 
-    Mkdir("/path");
-    Mkdir("/pathe");
-    Mkdir("/pathe/aa/");
-    // Mkdir("/path/eeee");
-    // Mkdir("/path/eeee/dd");
-    // Mkdir("/pa");
-    // Mkdir("/pa");
-    // Inode root;
-    // ReadData(&root, GetInodeAddress(rootInode), sizeof(Inode));
-    // PrintInode(root);
+
+
+int main(int argc, char* argv[]) {
+    srand((time_t)time(NULL));
+    Init();
+
+
+    printf("Hello Wolrd");
 
     CleanUp();
-
     return 0;
 }
-void* _m(size_t size) {
-    void* p = NULL; do p = calloc(size, 1); while (!p);
-    return p;
-}
-void* _r(void* p, size_t size) {
-    void* o = NULL; do o = realloc(p, size); while (!o);
-    return o;
-}
-char** SplitString(char* string, char* p) {
-    int count = 4, k = 0, len = strlen(string);
 
-    char a[len], * b, ** A = _m(count * sizeof(void*));
-    strcpy(a, string);
+uint8_t* MappingAddress(uint32_t address) { return disk + address; }
+uint32_t GetDataAddress(uint32_t chunkNumber) { return (chunkNumber + 8) * cSize; }
 
-
-
-    while (strstr(a, p) != NULL) {
-        b = strstr(a, p);
-        int l = b - a;
-        if (l > 0) A[k++] = memcpy(_m(l + 1), a, l);
-        strcpy(a, b + 1);
-
-        if (k == count) A = _r(A, (count *= 2) * sizeof(char*));
-    }
-
-    A[k++] = strcpy(_m(strlen(a) + 1), a);
-    A[k++] = NULL;
-    return (char**)_r(A, k * sizeof(char*));
-}
-
-char* MappingAddress(unsigned int address) { return data + address; }
-unsigned int GetAddressFromChunk(unsigned int chunk) { return chunk * chunkSize; }
-unsigned int GetChunkFromAddress(unsigned int address) { return address / chunkSize; }
-unsigned int GetInodeAddress(unsigned int inode) { return inodeBitmap.address + sizeof(Inode) * inode; }
-unsigned int GetDataAddress(unsigned int data) { return dataBitmap.address + chunkSize * data; }
-
-void WriteInode(Inode inode, InodeTable* table, unsigned int size) {
-    WriteData(GetInodeAddress(inode.inode_number), (char*)&inode, sizeof(inode));
-    WriteData(GetDataAddress(inode.blocks[0]), (char*)table, size);
-}
-
-Inode CreateDirectory(int parent, char* name) {
-    Inode inode = { .inode_number = GetFreeChunk(inodeBitmap), .link = 2,.type = DIRECTORY };
-
-    inode.blocks[0] = GetFreeChunk(dataBitmap);
-    for (int i = 1; i < 13; inode.blocks[i++] = UINT_MAX);
-
-    if (inode.inode_number >= inodeBitmap.size || inode.blocks[0] >= dataBitmap.size) return inode;
-
-    InodeTable table[2] = {
-        {.name = ".", .inode_number = inode.inode_number},
-        {.name = "..", .inode_number = parent == -1 ? inode.inode_number : parent},
-    };
-    inode.size = sizeof(table);
-
-    WriteInode(inode, table, inode.size);
-
-    ReadData(&inode, GetInodeAddress(inode.inode_number), sizeof(Inode));
-    // PrintInode(inode);
-
-    if (parent == -1) return inode;
-    Inode inodeParent;
-    ReadData(&inodeParent, GetInodeAddress(parent), sizeof(Inode));
-    ++inodeParent.link;
-    inodeParent.size += sizeof(InodeTable);
-
-    int size = inodeParent.size / sizeof(InodeTable);
-    InodeTable parentTable[size];
-    ReadData(parentTable, GetDataAddress(inodeParent.blocks[0]), inodeParent.size);
-
-    parentTable[size - 1].inode_number = inode.inode_number;
-    strcpy(parentTable[size - 1].name, name);
-
-    WriteInode(inodeParent, parentTable, inodeParent.size);
-    // PrintInode(inodeParent);
-
-    // WriteData(GetInodeAddress(inode.inode_number), (char*)&inode, sizeof(inode));
-    // WriteData(GetDataAddress(inode.blocks[0]), (char*)table, sizeof(table));
-
-    return inode;
-}
-unsigned int IsExistPath(char** path) {
-    unsigned int k = 0, c = 0, res = -1;
-
-    Inode root;
-    ReadData(&root, GetInodeAddress(rootInode), sizeof(Inode));
-
-    do {
-        if (path[k + 1] == NULL) {                                             // Check if it is the parent folder
-            res = root.inode_number;
-            break;
-        }
-        c = 0;
-
-        int size = root.size / sizeof(InodeTable);
-        InodeTable table[size];
-        ReadData(table, GetAddressFromChunk(root.blocks[0]), root.size);    // Read Inode
-
-        for (int i = 0; i < size; ++i) {
-            if (strcmp(table[i].name, path[k])) continue;
-            c = 1, ++k;
-            ReadData(&root, GetInodeAddress(table[i].inode_number), sizeof(Inode));
-
-        }
-    } while (c);
-
-
-    return res;
-}
-unsigned int Mkdir(char* path) {
-    char** P = SplitString(path, "/");
-
-    unsigned int inodeParent = IsExistPath(P);
-
-    if (inodeParent == -1) return -1;
-
-    char x[100];
-    for (int i = 0; P[i] != NULL; P[i + 1] == NULL ? strcpy(x, P[i]) : 0, ++i);
-
-    FreeM(P);
-
-    return CreateDirectory(inodeParent, x).inode_number;
-}
-
-int WriteData(unsigned int address, char* dat, int size) {
-    if (address == UINT_MAX) return UINT_MAX;
-    memcpy(MappingAddress(address), dat, size);
-}
-unsigned int ReadBit(char x, int bit) { return (x & (1 << bit)) >> bit; }
-char* ReadData(void* dest, unsigned int address, int size) { return memcpy(dest, MappingAddress(address), size); }
-
-void PrintData(char* data, int size) {
+void Write(uint32_t address, uint8_t* data, uint32_t size) { memcpy(_m(address), data, size); }
+uint8_t* Read(uint32_t address, uint32_t size) { return memcpy(_ma(size), _m(address), size); }
+void Print(uint8_t* address, uint32_t size) {
     for (int i = 0; i < size;++i) {
-        for (int j = 0; j < 8; printf("%d", ReadBit(data[i], j++)));
+        for (int j = 0; j < 8; printf("%d", ReadBit(address[i], j++)));
         printf((i + 1) % 8 != 0 ? " " : "\n");
     }
-}
-int CheckFreeChunk(Bitmap bitmap, int number) {
-    return ReadBit(MappingAddress(GetAddressFromChunk(bitmap.chunk))[(int)(number / 8)], number % 8);
+    printf("\n\n");
 }
 
-unsigned int GetFreeChunk(Bitmap bitmap) {
-    char* dat = MappingAddress(GetAddressFromChunk(bitmap.chunk));
+uint32_t* WriteChunk(uint8_t* data, uint32_t size) {
+    uint32_t result[] = { GetFreeCell(dBitmap), min(size, cSize - 4) };
 
-    for (int i = 0; i < ceil(bitmap.size / 8); ++i) {
+    Write(GetDataAddress(result[0]), (uint8_t*)&result[1], 4);
+    Write(GetDataAddress(result[0]) + 4, data, result[1]);
+
+    return memcpy(_ma(_s(result)), result, _s(result));
+}
+uint32_t* UpdateChunk(uint32_t chunk, uint8_t* data, uint32_t size) {
+    uint32_t* offset = (uint32_t*)Read(GetDataAddress(chunk), 4);
+    uint32_t s = min(size, cSize - 4 - *offset), s2[] = { chunk, s + *offset };
+
+    Write(GetDataAddress(chunk), (uint8_t*)&s2[1], 4);
+    Write(GetDataAddress(chunk) + *offset, data, s);
+    free(offset);
+
+    return memcpy(_ma(_s(s2)), s2, _s(s2));
+}
+
+uint8_t* ReadChunk(uint32_t* chunk) { return Read(GetDataAddress(chunk[0]) + 4, chunk[1]); }
+
+uint8_t CheckCell(Bitmap bm, uint32_t i) { return ReadBit(_m(bm.address)[i / 8], i % 8); }
+void FreeCell(Bitmap bm, uint32_t i) {
+    uint8_t* dst = _m(bm.address);
+    if (ReadBit(dst[i / 8], i % 8) == 0) return;
+    dst[i / 8] -= pow(2, i % 8);
+}
+uint8_t GetFreeCell(Bitmap bm) {
+    uint8_t* dat = _m(bm.address);
+    int size = ceil(bm.size / 8);
+
+    for (int i = 0; i < size; ++i) {
         for (int j = 0; j < 8; ++j) {
             if (ReadBit(dat[i], j)) continue;                             // If dat is 1, continue
             dat[i] |= (1 << j);                                           // Write to Bitmap
             return i * 8 + j;
         }
     }
-    return UINT_MAX;
+    return (uint8_t)FAIL;
 }
 
-void FreeChunk(Bitmap bitmap, int number) {
-    char* dst = MappingAddress(GetAddressFromChunk(bitmap.chunk));
-    if (ReadBit(dst[(number / 8)], number % 8) == 0) return;
-    dst[(number / 8)] -= pow(2, number % 8);
-}
+
