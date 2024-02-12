@@ -12,7 +12,7 @@
 
 #define DIRECTORY                                       1
 #define FILE                                            2
-// #define END_OF_ARRAY                                    UINT_MAX
+
 // char             1 byte              8   bit     (*)
 // int              4 byte              32  bit
 // long long        8 byte              64  bit
@@ -52,7 +52,7 @@ const unsigned int chunkSize = 4096;                                // byte (4KB
 const Bitmap inodeBitmap = { .size = (chunkSize * 5) / sizeof(Inode), .chunk = 1, .address = 3 * chunkSize };
 const Bitmap dataBitmap = { .size = 56,.chunk = 2, .address = 8 * chunkSize };
 
-const unsigned int inodeLinks = sizeof(Inode) / sizeof(unsigned int) - 4;
+const unsigned int inodeLinks = 12;
 unsigned int rootInode;
 
 void* _m(size_t size);
@@ -70,13 +70,13 @@ int CheckFreeChunk(Bitmap bitmap, int number);
 unsigned int GetFreeChunk(Bitmap bitmap);
 void FreeChunk(Bitmap bitmap, int number);
 
-int Mkdir(char* path);
-Inode CreateDirectory(int parent);
+unsigned int IsExistPath(char** path);
+unsigned int Mkdir(char* path);
+Inode CreateDirectory(int parent, char* name);
 int WriteData(unsigned int address, char* dat, int size);
 
 unsigned int ReadBit(char x, int bit);
 char* ReadData(void* dest, unsigned int address, int size);
-InodeTable* ReadInode(unsigned int inode);
 void PrintData(char* data, int size);
 
 void PrintInode(Inode inode) {
@@ -109,7 +109,7 @@ void Initialize() {
     // Setup Bitmap
 
     // Create root directory
-    Inode root = CreateDirectory(-1);
+    Inode root = CreateDirectory(-1, "");
     PrintInode(root);
 
     Inode test;
@@ -128,7 +128,16 @@ void CleanUp() { free(data); }
 int main() {
     Initialize();
 
-    Mkdir("//path/ed");
+    Mkdir("/path");
+    Mkdir("/pathe");
+    Mkdir("/pathe/aa/");
+    // Mkdir("/path/eeee");
+    // Mkdir("/path/eeee/dd");
+    // Mkdir("/pa");
+    // Mkdir("/pa");
+    // Inode root;
+    // ReadData(&root, GetInodeAddress(rootInode), sizeof(Inode));
+    // PrintInode(root);
 
     CleanUp();
 
@@ -138,7 +147,6 @@ void* _m(size_t size) {
     void* p = NULL; do p = calloc(size, 1); while (!p);
     return p;
 }
-
 void* _r(void* p, size_t size) {
     void* o = NULL; do o = realloc(p, size); while (!o);
     return o;
@@ -165,23 +173,18 @@ char** SplitString(char* string, char* p) {
     return (char**)_r(A, k * sizeof(char*));
 }
 
-char* MappingAddress(unsigned int address) {
-    return data + address;
-}
-unsigned int GetAddressFromChunk(unsigned int chunk) {
-    return chunk * chunkSize;
-}
-unsigned int GetChunkFromAddress(unsigned int address) {
-    return address / chunkSize;
-}
-unsigned int GetInodeAddress(unsigned int inode) {
-    return inodeBitmap.address + sizeof(Inode) * inode;
-}
-unsigned int GetDataAddress(unsigned int data) {
-    return dataBitmap.address + chunkSize * data;
+char* MappingAddress(unsigned int address) { return data + address; }
+unsigned int GetAddressFromChunk(unsigned int chunk) { return chunk * chunkSize; }
+unsigned int GetChunkFromAddress(unsigned int address) { return address / chunkSize; }
+unsigned int GetInodeAddress(unsigned int inode) { return inodeBitmap.address + sizeof(Inode) * inode; }
+unsigned int GetDataAddress(unsigned int data) { return dataBitmap.address + chunkSize * data; }
+
+void WriteInode(Inode inode, InodeTable* table, unsigned int size) {
+    WriteData(GetInodeAddress(inode.inode_number), (char*)&inode, sizeof(inode));
+    WriteData(GetDataAddress(inode.blocks[0]), (char*)table, size);
 }
 
-Inode CreateDirectory(int parent) {
+Inode CreateDirectory(int parent, char* name) {
     Inode inode = { .inode_number = GetFreeChunk(inodeBitmap), .link = 2,.type = DIRECTORY };
 
     inode.blocks[0] = GetFreeChunk(dataBitmap);
@@ -195,18 +198,73 @@ Inode CreateDirectory(int parent) {
     };
     inode.size = sizeof(table);
 
-    WriteData(GetInodeAddress(inode.inode_number), (char*)&inode, sizeof(inode));
-    WriteData(GetDataAddress(inode.blocks[0]), (char*)table, sizeof(table));
+    WriteInode(inode, table, inode.size);
+
+    ReadData(&inode, GetInodeAddress(inode.inode_number), sizeof(Inode));
+    // PrintInode(inode);
+
+    if (parent == -1) return inode;
+    Inode inodeParent;
+    ReadData(&inodeParent, GetInodeAddress(parent), sizeof(Inode));
+    ++inodeParent.link;
+    inodeParent.size += sizeof(InodeTable);
+
+    int size = inodeParent.size / sizeof(InodeTable);
+    InodeTable parentTable[size];
+    ReadData(parentTable, GetDataAddress(inodeParent.blocks[0]), inodeParent.size);
+
+    parentTable[size - 1].inode_number = inode.inode_number;
+    strcpy(parentTable[size - 1].name, name);
+
+    WriteInode(inodeParent, parentTable, inodeParent.size);
+    // PrintInode(inodeParent);
+
+    // WriteData(GetInodeAddress(inode.inode_number), (char*)&inode, sizeof(inode));
+    // WriteData(GetDataAddress(inode.blocks[0]), (char*)table, sizeof(table));
 
     return inode;
 }
-InodeTable* IsExistPath(char* path) {
-    return 1;
-}
-int Mkdir(char* path) {
-    if (!IsExistPath(path)) return -1;
+unsigned int IsExistPath(char** path) {
+    unsigned int k = 0, c = 0, res = -1;
 
-    return 1;
+    Inode root;
+    ReadData(&root, GetInodeAddress(rootInode), sizeof(Inode));
+
+    do {
+        if (path[k + 1] == NULL) {                                             // Check if it is the parent folder
+            res = root.inode_number;
+            break;
+        }
+        c = 0;
+
+        int size = root.size / sizeof(InodeTable);
+        InodeTable table[size];
+        ReadData(table, GetAddressFromChunk(root.blocks[0]), root.size);    // Read Inode
+
+        for (int i = 0; i < size; ++i) {
+            if (strcmp(table[i].name, path[k])) continue;
+            c = 1, ++k;
+            ReadData(&root, GetInodeAddress(table[i].inode_number), sizeof(Inode));
+
+        }
+    } while (c);
+
+
+    return res;
+}
+unsigned int Mkdir(char* path) {
+    char** P = SplitString(path, "/");
+
+    unsigned int inodeParent = IsExistPath(P);
+
+    if (inodeParent == -1) return -1;
+
+    char x[100];
+    for (int i = 0; P[i] != NULL; P[i + 1] == NULL ? strcpy(x, P[i]) : 0, ++i);
+
+    FreeM(P);
+
+    return CreateDirectory(inodeParent, x).inode_number;
 }
 
 int WriteData(unsigned int address, char* dat, int size) {
