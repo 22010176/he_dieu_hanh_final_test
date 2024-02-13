@@ -15,6 +15,7 @@
 
 #define END                                             UINT_MAX
 #define FAIL                                            UINT_MAX
+#define SUCCESS                                         1
 
 #define DIRECTORY                                       1
 #define FILE                                            2
