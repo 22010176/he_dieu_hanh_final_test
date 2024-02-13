@@ -18,9 +18,6 @@ void* _ca(size_t size);
 void* _re(void* p, size_t size);
 
 
-
-
-
 // Utilities
 char** SplitString(char* string, char* p);
 uint8_t ReadBit(uint8_t x, uint8_t bit);

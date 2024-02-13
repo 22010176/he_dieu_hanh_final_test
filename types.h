@@ -7,14 +7,15 @@
 #define _m(x)                                           MappingAddress(x)
 #define _r(x)                                           rand() % x + 1
 #define _rr(start, end, step)                           _rand((int)((end - start) / step)) * step + start
-#define _fm(x)                                          for (int i = 0; x[i] != NULL; _f(x[i++])); _f(x)
+#define _fm(x)                                          for (int i = 0; x[i] != NULL; free(x[i++])); free(x)
 #define GenArr(arr,size,value)                          for (int i = 0; i < size; arr[i++] = value)
 #define max(a, b)                                       a > b ? a : b
 #define min(a, b)                                       a < b ? a : b
 #define class(_c)                                       typedef struct _c _c; struct _c
 
-#define END                                             UINT_MAX
+#define END                                             NULL
 #define FAIL                                            UINT_MAX
+#define EMPTY                                           UINT_MAX
 #define SUCCESS                                         1
 
 #define DIRECTORY                                       1
@@ -23,7 +24,7 @@
 #define INODE_MAX_POINTER                               12
 #define MAX_FILE_NAME_LENGTH                            28
 
-class(Bitmap) { uint32_t size, chunk, address; };
+class(Bitmap) { uint32_t size, chunk; };
 
 class(Inode) {
     uint32_t inode_number;                              // Inode's number        

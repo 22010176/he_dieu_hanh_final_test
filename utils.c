@@ -18,7 +18,7 @@ void* _re(void* p, size_t size) {
 char** SplitString(char* string, char* p) {
     int count = 4, k = 0, len = strlen(string);
 
-    char a[len], * b, ** A = _ma(count * _s(char*));
+    char a[len], * b, ** A = _ca(count * _s(char*));
     strcpy(a, string);
 
     while (strstr(a, p) != NULL) {
@@ -26,13 +26,13 @@ char** SplitString(char* string, char* p) {
         int l = b - a;
         if (l > 0) A[k++] = memcpy(_ca(l + 1), a, l);
         strcpy(a, b + 1);
-
-        if (k == count) A = _re(A, (count *= 2) * _s(char*));
+        if (k + 2 == count) A = _re(A, (count *= 2) * _s(char*));
     }
 
-    A[k++] = strcpy(_ca(strlen(a) + 1), a);
+    if (strlen(a) > 0) A[k++] = strcpy(_ca(strlen(a) + 1), a);
     A[k++] = NULL;
-    return (char**)_re(A, k * _s(char*));
+
+    return (char**)_re(A, k * _s(void*));
 }
 uint8_t ReadBit(uint8_t x, uint8_t bit) { return (x & (1 << bit)) >> bit; }
 
