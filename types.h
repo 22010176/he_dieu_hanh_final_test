@@ -4,12 +4,11 @@
 #include <stdint.h>
 
 #define _s                                              sizeof
-#define _f                                              free
-#define _p                                              printf
 #define _m(x)                                           MappingAddress(x)
 #define _r(x)                                           rand() % x + 1
 #define _rr(start, end, step)                           _rand((int)((end - start) / step)) * step + start
 #define _fm(x)                                          for (int i = 0; x[i] != NULL; _f(x[i++])); _f(x)
+#define GenArr(arr,size,value)                          for (int i = 0; i < size; arr[i++] = value)
 #define max(a, b)                                       a > b ? a : b
 #define min(a, b)                                       a < b ? a : b
 #define class(_c)                                       typedef struct _c _c; struct _c
@@ -36,7 +35,7 @@ class(Inode) {
 
 class(InodeTable) {
     uint32_t inode_number;
-    uint8_t name[MAX_FILE_NAME_LENGTH];
+    char name[MAX_FILE_NAME_LENGTH];
 };
 
 
