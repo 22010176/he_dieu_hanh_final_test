@@ -6,7 +6,7 @@
 // Constant
 uint8_t* disk;
 const uint32_t dSize = 4 * 1024 * 16 * 4;                           // byte (256KB)
-const uint32_t cSize = 512;                                    // byte (4KB)
+const uint32_t cSize = 1024;                                         // byte (4KB) (minimum 256byte)
 
 const Bitmap iBitmap = { .size = (cSize * 5) / _s(Inode), .chunk = 1 };
 const Bitmap dBitmap = { .size = dSize / cSize - 8, .chunk = 2 };
@@ -25,6 +25,7 @@ uint32_t GetInodeAddress(uint32_t inodeNumber);
 uint32_t CheckCell(Bitmap bm, uint32_t i);
 void FreeCell(Bitmap bm, uint32_t i);
 uint32_t GetFreeCell(Bitmap bm);
+void PrintBitmap(Bitmap bm);
 
 
 // Read-Write-Debug
@@ -36,7 +37,10 @@ void Print(uint32_t address, uint32_t size);
 
 // Operation with Chunk
 uint8_t* ReadChunk(uint32_t chunk);
+uint32_t ClearChunk(uint32_t chunk);
 void PrintChunk(uint32_t chunk);
+uint32_t CalcChunkNumber(uint32_t size);
+uint32_t* ChunkAlocate(uint32_t number);
 
 
 // Operation with Inodes
@@ -50,14 +54,22 @@ void FreePointer(Inode* inode, uint32_t pointer);
 
 
 // Operation with Data Chunk
-uint32_t WriteData(uint8_t* data, uint32_t size);                     // { data }, byte                 -> chunk
-uint32_t WriteToData(uint32_t chunk, uint8_t* data, uint32_t size);
+uint32_t WriteData(uint8_t* data, uint32_t size);                     // { data }, byte                 -> size write
+uint32_t WriteToData(uint32_t chunk, uint8_t* data, uint32_t size);   // size write              
 uint32_t UpdateData(uint32_t chunk, uint8_t* data, uint32_t size);    // chunkNumber, { data }, byte   -> chunk
 uint32_t GetDataSize(uint32_t chunk);
 uint32_t GetRemainingSize(uint32_t chunk);
 uint8_t* ReadData(uint32_t chunk);
 void PrintData(uint32_t chunk);
 uint32_t IsDataFull(uint32_t chunk);
+uint32_t FreeData(uint32_t chunk);
+
+
+// Read-Write
+uint8_t* _ReadData(uint32_t* data);
+uint32_t* _WriteData(uint8_t* data, uint32_t size);
+uint32_t* _PackedData(uint32_t* data);
+uint32_t _GetDataSize(uint32_t* data);
 
 
 // Operation with InodeTable
@@ -92,7 +104,8 @@ uint32_t Mkdir(char* path);
 uint32_t WriteInodeData(uint32_t inodeNumber, uint8_t* data, uint32_t size);
 uint32_t PackedInodeData(uint32_t inodeNumber);
 uint8_t* ReadInodeData(uint32_t inodeNumber);
-
+uint32_t GetFreeChunkSize(Inode* inode);
+uint32_t AssignChunkToBlocks(Inode* inode, uint32_t* chunks);
 
 // Testing File System
 void ListShow(char* path);
@@ -104,7 +117,7 @@ void PrintFolderStructure();
 void Init() {
     disk = _ca(dSize);
 
-    // Setup Bitmap
+
 
 
 }
@@ -117,19 +130,17 @@ int main(int argc, char* argv[]) {
     srand((time_t)time(NULL));
     Init();
 
-    uint32_t inodeNumber = SetupFolder();
+    uint32_t len = 200;
+    Inode inode = CreateInode(DIRECTORY);
 
-    uint32_t len = 70;
     InodeTable tables[len];
-    for (int i = 0; i < len; ++i) tables[i] = CreateInodeTable(i + 1, "test2");
+    for (int i = 0; i < len; ++i) tables[i] = CreateInodeTable(i + 1, "TEST");
 
+    WriteInodeData(inode.inode_number, (uint8_t*)tables, _s(tables)); // 1
 
-    WriteInodeData(inodeNumber, (uint8_t*)tables, len * _s(InodeTable));
-    WriteInodeData(inodeNumber, (uint8_t*)tables, len * _s(InodeTable));
-    PrintInodeDirectory(inodeNumber);
-
-    InodeTable* test = (InodeTable*)ReadInodeData(inodeNumber);
-    for (int i = 0; i < len * 2; i++) PrintInodeTable(test[i]);
+    PrintInodeFromDisk(inode.inode_number);
+    InodeTable* tables2 = (InodeTable*)ReadInodeData(inode.inode_number);
+    for (int i = 0; i < len; ++i) PrintInodeTable(tables2[i]);
 
 
     CleanUp();
@@ -217,7 +228,7 @@ uint32_t WriteToData(uint32_t chunk, uint8_t* data, uint32_t size) {
     Write(GetDataAddress(result[0]), (uint8_t*)&result[1], 4);
     Write(GetDataAddress(result[0]) + 4, data, result[1]);
 
-    return chunk;
+    return result[1];
 }
 uint32_t UpdateData(uint32_t chunk, uint8_t* data, uint32_t size) {
     if (IsDataFull(chunk)) return FAIL;
@@ -236,15 +247,77 @@ uint32_t GetRemainingSize(uint32_t chunk) { return max(cSize - GetDataSize(chunk
 uint8_t* ReadData(uint32_t chunk) { return Read(GetDataAddress(chunk) + 4, cSize - 4); }
 void PrintData(uint32_t chunk) { PrintChunk(chunk + 8); }
 uint32_t IsDataFull(uint32_t chunk) { return GetDataSize(chunk) == cSize - 4; }
+uint32_t FreeData(uint32_t chunk) {
+    FreeCell(dBitmap, chunk);
+    return ClearChunk(chunk + 8);
+}
 
+
+uint8_t* _ReadData(uint32_t* data) {
+
+    uint32_t size = cSize, offset = 0;
+    uint8_t* result = _ma(size);
+    for (uint32_t i = 0; data[i] != EMPTY; ++i) {
+        uint8_t* dat = ReadData(data[i]);
+        uint32_t s = GetDataSize(data[i]);
+
+        if (size + s >= size) result = _re(result, size += cSize);
+        memcpy(result + offset, dat, s);
+
+        offset += s;
+        free(dat);
+    }
+    return _re(result, offset);
+}
+uint32_t* _WriteData(uint8_t* data, uint32_t size) {
+    uint32_t* chunkAllocate = ChunkAlocate(CalcChunkNumber(size));
+    for (uint32_t i = 0, offset = 0, temp = size; chunkAllocate[i] != EMPTY; ++i) {
+        uint32_t s = WriteToData(chunkAllocate[i], data + offset, temp);
+        temp -= s; offset += s;
+    }
+    return chunkAllocate;
+}
+uint32_t* _PackedData(uint32_t* data) {
+    uint8_t* x = _ReadData(data);
+
+    uint32_t size = 0;
+    for (uint32_t i = 0; data[i] != EMPTY; ++i) {
+        size += GetDataSize(data[i]);
+        FreeData(data[i]);
+    }
+
+    uint32_t* result = _WriteData(x, size);
+    free(x);
+    return result;
+}
+uint32_t _GetDataSize(uint32_t* data) {
+    uint32_t size = 0;
+    for (uint32_t i = 0; data[i] != EMPTY; size += data[i++]);
+
+    return size;
+}
 
 uint8_t* ReadChunk(uint32_t chunk) { return Read(GetChunkAddress(chunk), cSize); }
+uint32_t ClearChunk(uint32_t chunk) {
+    memset(_m(GetChunkAddress(chunk)), 0, cSize);
+    return chunk;
+}
 void PrintChunk(uint32_t chunk) { Print(GetChunkAddress(chunk), cSize); }
+uint32_t CalcChunkNumber(uint32_t size) { return ceil((double)size / cSize); }
+uint32_t* ChunkAlocate(uint32_t number) {
+    uint32_t* arr = _ma((number + 1) * sizeof(uint32_t));
+    GenArr(arr, number, GetFreeCell(dBitmap));
+    arr[number] = EMPTY;
+
+    return arr;
+}
 
 
 Inode CreateInode(uint32_t type) {
     Inode inode = { .inode_number = GetFreeCell(iBitmap), .link = 0, .size = 0, .type = type };
     GenArr(inode.blocks, INODE_MAX_POINTER, EMPTY);
+    WriteInode(&inode);
+
     return inode;
 }
 uint32_t WriteInode(Inode* inode) {
@@ -265,67 +338,85 @@ void PrintInode(Inode* inode) {
     printf("]\n\n");
 }
 void FreeInode(uint32_t inodeNumber) {
-    uint8_t x[_s(Inode)] = { 0 };
     FreeCell(iBitmap, inodeNumber);
-    Write(GetInodeAddress(inodeNumber), x, _s(Inode));
+    memset(_m(GetInodeAddress(inodeNumber)), 0, _s(Inode));
 }
 inline Inode* ReadInode(uint32_t inodeNumber) { return (Inode*)Read(GetInodeAddress(inodeNumber), _s(Inode)); }
 uint32_t FindFreePointer(Inode* inode) {
-    for (int i = 0; i < INODE_MAX_POINTER; ++i)
-        if (inode->blocks[i] == EMPTY) return i;
+    for (int i = 0; i < INODE_MAX_POINTER; ++i) if (inode->blocks[i] == EMPTY) return i;
     return EMPTY;
 }
 void FreePointer(Inode* inode, uint32_t pointer) {
-    for (int i = pointer; i < MAX_FILE_NAME_LENGTH; ++i) {
-        FreeCell(dBitmap, inode->blocks[i]);
+    for (int i = pointer; i < INODE_MAX_POINTER; ++i) {
+        if (inode->blocks[i] == EMPTY) break;
+        inode->size -= GetDataSize(inode->blocks[i]);
+
+        FreeData(inode->blocks[i]);
         inode->blocks[i] = EMPTY;
     }
+    WriteInode(inode);
+    // test("Free Inode pointers");
+    // PrintInodeFromDisk(inode->inode_number);
 }
 
 
 uint32_t WriteInodeData(uint32_t inodeNumber, uint8_t* data, uint32_t size) {
     Inode* inode = ReadInode(inodeNumber);
+
     if (FindFreePointer(inode) == EMPTY) {
         free(inode);
         return FAIL;
     }
-
-    uint32_t temp = size, offset = 0;
-    while (temp > 0) {
-        uint32_t index = FindFreePointer(inode);
-        inode->blocks[index] = WriteData(data + offset, temp);
-
-        uint32_t s = GetDataSize(inode->blocks[index]);
-        temp -= s, offset += s;
-    }
+    uint32_t* result = _WriteData(data, size);
+    AssignChunkToBlocks(inode, result);
+    // for (uint32_t i = 0, j = FindFreePointer(inode); result[i] != EMPTY && j != EMPTY; ++i, ++j) inode->blocks[j] = result[i];
     inode->size += size;
 
     WriteInode(inode);
+
+    // test("Good");
+    free(result);
     free(inode);
 
     return SUCCESS;
 }
-uint8_t* ReadInodeData(uint32_t inodeNumber) {
+uint32_t PackedInodeData(uint32_t inodeNumber) {
+    uint32_t data[INODE_MAX_POINTER + 1];
+
     Inode* inode = ReadInode(inodeNumber);
-    uint8_t* data = _ma(inode->size);
+    for (int i = 0; inode->blocks[i - 1] != EMPTY && i < INODE_MAX_POINTER; ++i) data[i] = inode->blocks[i];
 
-    uint32_t offset = 0;
-    for (int i = 0; i < INODE_MAX_POINTER; ++i) {
-        if (inode->blocks[i] == EMPTY) break;
+    uint8_t* temp = _ReadData(data);
+    uint32_t size = inode->size;
 
-        uint8_t* dat = ReadData(inode->blocks[i]);
-        uint32_t size = GetDataSize(inode->blocks[i]);
+    FreePointer(inode, 0);
+    uint32_t* newData = _WriteData(temp, size); // 3
+    AssignChunkToBlocks(inode, newData);
 
-        memcpy(data + offset, dat, size);
-        offset += size;
+    WriteInode(inode);
 
-        free(dat);
-    }
-
+    free(temp);
     free(inode);
-    return data;
+
+    test("Packed");
+    return SUCCESS;
 }
 
+uint8_t* ReadInodeData(uint32_t inodeNumber) {
+    uint32_t data[INODE_MAX_POINTER + 1];
+
+    Inode* inode = ReadInode(inodeNumber);
+    for (int i = 0; inode->blocks[i - 1] != EMPTY && i < INODE_MAX_POINTER; ++i) data[i] = inode->blocks[i];
+
+    free(inode);
+
+    return _ReadData(data);
+}
+uint32_t GetFreeChunkSize(Inode* inode) { return (INODE_MAX_POINTER - FindFreePointer(inode) + 1) * cSize; }
+uint32_t AssignChunkToBlocks(Inode* inode, uint32_t* chunks) {
+    for (uint32_t i = 0, j = FindFreePointer(inode); chunks[i] != EMPTY && j != EMPTY; inode->blocks[j++] = chunks[i++]);
+    return inode->inode_number;
+}
 
 InodeTable CreateInodeTable(uint32_t inodeNumber, char* name) {
     InodeTable table;
@@ -430,7 +521,11 @@ uint32_t GetFreeCell(Bitmap bm) {
     }
     return FAIL;
 }
-
+void PrintBitmap(Bitmap bm) {
+    printf("\n\n");
+    Print(GetChunkAddress(bm.chunk), bm.size / 8);
+    printf("\n\n");
+}
 
 uint32_t SetupFolder() {
     Inode inode = CreateInode(DIRECTORY);

@@ -12,8 +12,9 @@
 #define max(a, b)                                       a > b ? a : b
 #define min(a, b)                                       a < b ? a : b
 #define class(_c)                                       typedef struct _c _c; struct _c
+#define test(x)                                         printf("\n%d %s\n", __LINE__, x)
 
-#define END                                             NULL
+#define END                                             UINT_MAX
 #define FAIL                                            UINT_MAX
 #define EMPTY                                           UINT_MAX
 #define SUCCESS                                         1
