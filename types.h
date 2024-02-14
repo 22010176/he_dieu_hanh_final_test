@@ -30,8 +30,6 @@
 
 // TYPES define
 #define _index                                          uint32_t
-#define _inode                                          Inode*
-#define _chunk                                          uint8_t  
 #define _flag                                           uint32_t
 #define _file                                           uint32_t
 
@@ -42,9 +40,9 @@
 
 #define _bool                                           uint32_t
 #define _data                                           uint8_t*
+#define _byte                                           uint8_t
 
-
-class(Bitmap) { uint32_t size, chunk; };
+class(Bitmap) { uint32_t size, chunk, number; };
 
 class(Inode) {
     uint32_t inode_number;                              // Inode's number        
