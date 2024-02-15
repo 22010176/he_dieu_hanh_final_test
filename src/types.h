@@ -15,7 +15,7 @@
 #define min(a, b)                                       a < b ? a : b
 
 #define class(_c)                                       typedef struct _c _c; struct _c
-#define test(x)                                         printf("\n%d %s\n", __LINE__, x)
+#define test(x)                                         printf("\n%s#%d %s\n", __FILE__, __LINE__, x)
 #define _t                                              ; test("testing")
 
 #define FAIL                                            UINT_MAX
@@ -80,5 +80,13 @@ class(_File) {
     Inode inode;
     Buffer* buffer;
 };
+
+#ifndef _AAAAA_
+#define _AAAAA_
+
+
+
+#endif
+
 
 #endif

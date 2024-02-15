@@ -12,6 +12,7 @@
         "conio.h": "c",
         "disk.h": "c",
         "constant.h": "c",
-        "limits.h": "c"
+        "limits.h": "c",
+        "path.h": "c"
     }
 }
