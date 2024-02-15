@@ -32,7 +32,26 @@ char** SplitString(char* string, char* p) {
     if (strlen(a) > 0) A[k++] = strcpy(_ca(strlen(a) + 1), a);
     A[k++] = NULL;
 
-    return (char**)_re(A, k * _s(void*));
+    return (char**)_re(A, k * _s(char*));
+}
+uint32_t SizeStringArr(char** string) {
+    uint32_t size = 0;
+    for (int i = 0; string[i] != NULL;++i) size += strlen(string[i]) + 1;
+    return size;
+}
+char* JoinString(char* result, char** string, char* add) {
+    for (int i = 0; string[i] != NULL; ++i) {
+        strcat(result, string[i]);
+        strcat(result, add);
+    }
+    return result;
+}
+char* JoinStringExceptLast(char* result, char** string, char* add) {
+    for (int i = 0; string[i + 1] != NULL; ++i) {
+        strcat(result, string[i]);
+        strcat(result, add);
+    }
+    return result;
 }
 uint8_t ReadBit(uint8_t x, uint8_t bit) { return (x & (1 << bit)) >> bit; }
 
