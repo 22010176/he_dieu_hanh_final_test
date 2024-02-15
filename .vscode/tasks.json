@@ -6,6 +6,7 @@
             "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
             "args": [
                 "-Wall",
+                "${workspaceFolder}\\src\\*.c",
                 "${workspaceFolder}\\*.c",
                 "-o",
                 "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"

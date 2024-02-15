@@ -9,6 +9,9 @@
         "utils.h": "c",
         "cmath": "c",
         "time.h": "c",
-        "conio.h": "c"
+        "conio.h": "c",
+        "disk.h": "c",
+        "constant.h": "c",
+        "limits.h": "c"
     }
 }

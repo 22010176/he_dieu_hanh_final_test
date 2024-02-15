@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
@@ -10,7 +12,6 @@
 #include <conio.h>
 #include <math.h>
 
-#include "types.h"
 
 // Memory Allocate
 void* _ma(size_t size);

@@ -1,7 +1,10 @@
+#pragma once
+
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
 #include <stdint.h>
+#include <limits.h>
 
 #define _s                                              sizeof
 #define _rand(x)                                        rand() % x + 1
