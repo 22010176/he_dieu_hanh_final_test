@@ -21,6 +21,7 @@ void* _re(void* p, size_t size);
 
 // Utilities
 char** SplitString(char* string, char* p);
+char** SplitStringExceptLast(char* string, char* p);
 uint32_t SizeStringArr(char** string);
 char* JoinString(char* result, char** string, char* add);
 char* JoinStringExceptLast(char* result, char** string, char* add);

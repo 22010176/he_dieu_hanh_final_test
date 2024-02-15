@@ -34,6 +34,25 @@ char** SplitString(char* string, char* p) {
 
     return (char**)_re(A, k * sizeof(char*));
 }
+char** SplitStringExceptLast(char* string, char* p) {
+    int count = 4, k = 0, len = strlen(string);
+
+    char a[len], * b, ** A = _ca(count * sizeof(char*));
+    strcpy(a, string);
+
+    while (strstr(a, p) != NULL) {
+        b = strstr(a, p);
+        int l = b - a;
+        if (l > 0) A[k++] = memcpy(_ca(l + 1), a, l);
+        strcpy(a, b + 1);
+        if (k + 2 == count) A = _re(A, (count *= 2) * sizeof(char*));
+    }
+
+    // if (strlen(a) > 0) A[k++] = strcpy(_ca(strlen(a) + 1), a);
+    A[k++] = NULL;
+
+    return (char**)_re(A, k * sizeof(char*));
+}
 uint32_t SizeStringArr(char** string) {
     uint32_t size = 0;
     for (int i = 0; string[i] != NULL;++i) size += strlen(string[i]) + 1;

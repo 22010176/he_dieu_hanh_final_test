@@ -35,6 +35,7 @@
 #define _file                                           uint32_t
 #define _chunk                                          uint32_t
 #define _inode                                          uint32_t
+#define _type                                           uint32_t
 
 #define _size                                           uint32_t
 
@@ -48,18 +49,36 @@
 class(Bitmap) { uint32_t size, chunk, number; };
 
 class(Inode) {
-    uint32_t inode_number;                              // Inode's number        
-    uint32_t type;                                      // File type (1 = D, 2 = F)
-    uint32_t size;                                      // Size of the file
-    uint32_t link;                                      // Count links
-    uint32_t blocks[INODE_MAX_POINTER + 1];                                // Data's address (12 direct pointer)
+    _inode inode_number;                              // Inode's number        
+    _type type;                                      // File type (1 = D, 2 = F)
+    _size size;                                      // Size of the file
+    _size link;                                      // Count links
+    _chunk blocks[INODE_MAX_POINTER + 1];                                // Data's address (12 direct pointer)
     // 4 + 4 + 4 * 12 + 4 + 4 = 64 byte
 };
 
+class(Super) {
+    _physic disk;
+    _size diskSize, chunkSize;
+    Bitmap inodeBm, dataBm;
+    _chunk iStartChunk, dStartChunk;
+    _inode rootInode;
+};
+
 class(InodeTable) {
-    uint32_t inode_number;
+    _inode inode_number;
     char name[MAX_FILE_NAME_LENGTH];
 };
 
+class(Buffer) {
+    _size size, offset;
+    _data data;
+};
+
+class(_File) {
+    _size offset;
+    Inode inode;
+    Buffer* buffer;
+};
 
 #endif

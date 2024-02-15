@@ -6,11 +6,11 @@
 //____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 // Constant
 _physic disk = (_physic)EMPTY;
-const _size dSize = 4 * 1024 * 16 * 4;                           // byte (256KB)
-const _size cSize = 128;                                         // byte (4KB) (minimum 256byte)
+_size dSize = 4 * 1024 * 16 * 4;                           // byte (256KB)
+_size cSize = 128;                                         // byte (4KB) (minimum 256byte)
 Bitmap iBitmap, dBitmap;
-_logic iStartChunk = EMPTY;
-_logic dStartChunk = EMPTY;
+_chunk iStartChunk = EMPTY;
+_chunk dStartChunk = EMPTY;
 
 _inode rootInode = EMPTY;
 //____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
@@ -64,7 +64,6 @@ Inode ReadInode(_inode inode);                                 // GetInode
 
 _flag _PackInodeBlocks(Inode* inode);
 _id _FindFreePointer(Inode* inode);
-_flag _PackInodeBlocks(Inode* inode);
 _size _GetTotalFreePointerSize(Inode* inode);
 _flag WriteInodeBlocks(Inode* inode, _data data, _size size);
 
@@ -86,7 +85,18 @@ char* GetParentFolder(char** path);
 // Folder Implementation
 Inode SetupFolder();
 _flag LinkingFolder(Inode* inode, InodeTable* table);
-_inode Mkdir(char* path);
+void PrintFolderStructure(_inode number, _size level);
+//____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+//____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+// Main Command
+_inode MkdirD(char* path);
+_inode LinkD(char* _dst, char* _src);
+_inode UnLinkD(char* path);
+
+_File OpenF(char* path, char* mode);
+_flag WriteF();
+_flag ReadF();
+_flag SeekF();
 //____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 //____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 // Main program
@@ -102,6 +112,39 @@ int main() {
     AlocateMemoryForDisk();
     InitBitmap();
     CreateRootFolder();
+
+    // PrintInodeFromDisk(rootInode);
+    // PrintBitmap(dBitmap);
+    // PrintBitmap(iBitmap);
+    MkdirD("a");
+    MkdirD("a/3ddd");
+    MkdirD("a/33ddd");
+    MkdirD("a/33ddd/ed");
+    MkdirD("a/33ddd/ed/ed");
+    MkdirD("a/33ddd/ed/eddf");
+    MkdirD("a/33ddd/ed/eddfasdf");
+    MkdirD("a/33ddd/ed/eddfasdfasdf");
+    MkdirD("b");
+    MkdirD("b/23424");
+    MkdirD("b/2342433");
+    MkdirD("c");
+    MkdirD("c/a");
+    MkdirD("c/a/b");
+    MkdirD("c/a/b/dd");
+    MkdirD("b/23424/23424");
+    MkdirD("c/a/b/c");
+    MkdirD("d");
+    MkdirD("d/355");
+    MkdirD("d/355/tesst3");
+    MkdirD("d/355/tesst5");
+    MkdirD("d/355/tesst6");
+    MkdirD("d/355/de");
+    MkdirD("d/3d");
+    MkdirD("d/3dasdfa");
+    MkdirD("d/3dasdfa/asdfasfd");
+
+    // PrintInodeFromDisk(rootInode);
+    PrintFolderStructure(rootInode, 0);
 
     Clean();
     return 0;
@@ -304,14 +347,13 @@ _flag WriteInodeBlocks(Inode* inode, _data data, _size size) {
 }
 _flag FreeInode(_inode inode) {
     Inode i = ReadInode(inode);
-    printf("%d ", FreeM(i.blocks));
     FreeCell(iBitmap, inode);
     return _Free(GetInodeAddress(inode), _s(Inode));
 }
 void PrintInodeFromDisk(_inode inode) {
     Inode result = ReadInode(inode);
-    PrintInode(&result);
 
+    PrintInode(&result);
     for (_id i = 0; result.blocks[i] != EMPTY; PrintInodeTableFromDisk(result.blocks[i]), ++i);
 }
 void PrintInode(Inode* inode) {
@@ -324,7 +366,6 @@ void PrintInode(Inode* inode) {
 }
 InodeTable CreateInodeTable(_inode inodeNumber, char* name) {
     InodeTable table;
-
     table.inode_number = inodeNumber;
     memcpy(table.name, name, MAX_FILE_NAME_LENGTH);
     return table;
@@ -346,7 +387,8 @@ void PrintInodeTable(InodeTable* table) { printf("\n| inode number: %-10d name: 
 // Path Utilities
 _inode IsPathExist(char** path) {
     _inode res = rootInode;
-    for (_id i = 0; res != FAIL && path[i] != NULL; res = IsFileExist(res, path[i++]));
+    for (_id i = 0; res != EMPTY && path[i] != NULL; res = IsFileExist(res, path[i]), ++i);
+    // PrintInodeFromDisk(res);
 
     return res;
 }                                   // Parent's inode or FAIL Flag
@@ -355,14 +397,16 @@ char* GetFileName(char** path) {
         return strcpy(_ca(strlen(path[i]) + 1), path[i]);
     return "";
 }
-_inode IsFileExist(_id inode, char* folderName) {
+_inode IsFileExist(_inode inode, char* folderName) {
     Inode data = ReadInode(inode);
 
-    uint32_t size = SizeM(data.blocks) / _s(InodeTable);
+    _size size = ceil((float)SizeM(data.blocks) / _s(InodeTable));
     InodeTable table[size]; CopyM((_data)table, data.blocks);
 
-    for (int i = 0; i < size; ++i)
-        if (!strcmp(table[i].name, folderName)) return table[i].inode_number;
+    for (_id i = 0; i < size; i++)
+        if (!strcmp(folderName, table[i].name)) return table[i].inode_number;
+    // for (int i = 0; i < size; ++i)
+    //     if (!strcmp(table[i].name, folderName)) return table[i].inode_number;
 
     return EMPTY;
 }
@@ -373,9 +417,7 @@ char* GetParentFolder(char** path) { return JoinStringExceptLast(_ca(SizeStringA
 // Folder Implementation
 Inode SetupFolder() {
     Inode inode = CreateInode(DIRECTORY);
-    InodeTable table = { .inode_number = inode.inode_number, .name = "." };
-
-    LinkingFolder(&inode, &table);
+    LinkingFolder(&inode, &(InodeTable){.inode_number = inode.inode_number, .name = "." });
 
     return inode;
 }
@@ -384,10 +426,49 @@ _flag LinkingFolder(Inode* inode, InodeTable* table) {
     WriteInodeBlocks(inode, (_data)table, _s(InodeTable));
     return SUCCESS;
 }
-_inode Mkdir(char* path) {
-    return 0;
-}
+_inode MkdirD(char* path) {
+    char** f = SplitString(path, "/");
+    char** p = SplitStringExceptLast(path, "/");
 
+    char* parentPath = GetParentFolder(f);
+    char* fileName = GetFileName(f);
+
+    _inode parent = IsPathExist(p);
+    if (parent == EMPTY || IsPathExist(f) != EMPTY) {
+        _fm(f); _fm(p);
+        free(parentPath);
+        free(fileName);
+        return FAIL;
+    }
+    Inode parentInode = ReadInode(parent), childrenInode = SetupFolder();
+
+    InodeTable childTable = CreateInodeTable(childrenInode.inode_number, fileName);
+    LinkingFolder(&parentInode, &childTable);
+    LinkingFolder(&childrenInode, &(InodeTable){.name = "..", .inode_number = parentInode.inode_number});
+
+    WriteInode(&parentInode);
+    WriteInode(&childrenInode);
+
+    _fm(f); _fm(p);
+    free(parentPath);
+    free(fileName);
+    return SUCCESS;
+}
+void PrintFolderStructure(_inode number, _size level) {
+    Inode Inode = ReadInode(number);
+
+    if (level == 0) printf(".\nInode \n");
+
+    _size len = Inode.size / _s(InodeTable);
+    InodeTable tables[len]; CopyM((_data)tables, Inode.blocks);
+    for (_id i = 0; i < len; ++i) {
+        // printf("%d", i);
+        if (tables[i].inode_number == number || !strcmp("..", tables[i].name)) continue;
+
+        printf("%*d| %s\n", -(level + 1) * 6, tables[i].inode_number, tables[i].name);
+        PrintFolderStructure(tables[i].inode_number, level + 1);
+    }
+}
 
 
 // Main program
@@ -415,34 +496,12 @@ _flag CreateRootFolder() {
     Inode root = SetupFolder();
     rootInode = root.inode_number;
 
+    LinkingFolder(&root, &(InodeTable) {.inode_number = root.inode_number, .name = ".." });
+    LinkingFolder(&root, &(InodeTable) {.inode_number = root.inode_number, .name = "~" });
+    LinkingFolder(&root, &(InodeTable) {.inode_number = root.inode_number, .name = "root" });
+    LinkingFolder(&root, &(InodeTable) {.inode_number = root.inode_number, .name = "" });
+
     WriteInode(&root);
-    PrintInodeFromDisk(rootInode);
-
-    FreeInode(root.inode_number);
-    PrintInodeFromDisk(rootInode);
-
-    // uint32_t a[] = { 333,4444,5555 };
-    // printf("updateCode: %d\n", UpdateS(chunk[3], (_data)a, _s(a)));
-
-    // uint32_t data2[len]; CopyM((_data)data2, chunk);
-
-    // for (int i = 0; i < len + 3; ++i) printf("%d ", data2[i]);
-    // PrintM(chunk);
-
-    // Inode root = CreateInode(DIRECTORY);
-    // rootInode = root.inode_number;
-
-    // InodeTable _root = CreateInodeTable(root.inode_number, ".");
-    // ++root.link;
-
-    // WriteInodeBlocks(&root, (_data)&_root, _s(InodeTable));
-    // WriteInode(&root);
-
-
-    // PrintInodeFromDisk(root.inode_number);
-    // PrintInodeTableFromDisk(root.blocks[0]);
-
-    // PrintM(root.blocks);
 
     return SUCCESS;
 }
