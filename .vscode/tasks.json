@@ -2,13 +2,15 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: gcc.exe build active file",
-            "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
+            "label": "C/C++: g++.exe build active file",
+            "command": "g++",
             "args": [
-                "${workspaceFolder}\\src\\*.c",
-                "${workspaceFolder}\\*.c",
+                // "-I.",
+                "-std=c++23",
+                "src/*.cpp",
+                "*.cpp",
                 "-o",
-                "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
+                "${workspaceFolder}\\out\\program.exe"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

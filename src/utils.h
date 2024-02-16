@@ -1,31 +1,13 @@
 #pragma once
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#include <cstdint>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <cmath>
 
-#include <time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdint.h>
-#include <conio.h>
-#include <math.h>
-
-
-// Memory Allocate
-void* _ma(size_t size);
-void* _ca(size_t size);
-void* _re(void* p, size_t size);
-
-
-// Utilities
-char** SplitString(char* string, char* p);
-char** SplitStringExceptLast(char* string, char* p);
-uint32_t SizeStringArr(char** string);
-char* JoinString(char* result, char** string, char* add);
-char* JoinStringExceptLast(char* result, char** string, char* add);
-uint8_t ReadBit(uint8_t x, uint8_t bit);
-
-
-#endif
+std::vector<std::string> SplitString(const std::string& src, const std::string& del, uint32_t skip = 0);
+uint32_t ReadBit(uint32_t byte, uint32_t bit);
+void PrintMem(uint8_t* data, size_t size);
+size_t CalcSize(size_t size1, size_t size2);
