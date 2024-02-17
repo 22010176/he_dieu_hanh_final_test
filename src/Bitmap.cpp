@@ -43,14 +43,7 @@ void Bitmap::Print() const {
     PrintMem(address, size);
     std::cout << std::endl;
 }
-uint8_t* Bitmap::ExportData() const {
-    uint8_t* data = new uint8_t[16];
-
-    // memcpy(data, &this->address, sizeof(uint8_t*));
-    // memcpy(data + sizeof(uint8_t*), &this->len, sizeof(size_t));
-
-    return ExportData(data);
-}
+uint8_t* Bitmap::ExportData() const { return ExportData(new uint8_t[16]); }
 uint8_t* Bitmap::ExportData(uint8_t _dst[16]) const {
     memcpy(_dst, &this->address, sizeof(uint8_t*));
     memcpy(_dst + sizeof(uint8_t*), &this->len, sizeof(size_t));

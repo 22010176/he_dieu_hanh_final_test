@@ -4,6 +4,8 @@
 #include "../src/Super.h"
 #include "../src/Inode.h"
 
+
+
 class VSFS {
 private:
     uint8_t* disk;
@@ -23,6 +25,14 @@ public:
     size_t GetDiskSize() const;
     size_t GetInodeNumber() const;
     size_t GetChunkSize() const;
+
+    void InitFileSystem();
+
+    void mkdir(const std::string& path);
+    void rm(const std::string& path, bool all = false);
+
+    void link(const std::string& _dst, const std::string& _src);
+    void unlink(const std::string& _src);
 
     ~VSFS();
 };

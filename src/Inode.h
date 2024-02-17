@@ -14,9 +14,10 @@ struct InodeTable {
     InodeTable(uint8_t tables[32]);
     InodeTable(uint32_t id, const std::string& name);
 
-    void Print();
+    void Print() const;
 
-    uint8_t* ExportData();
+    uint8_t* ExportData() const;
+    uint8_t* ExportData(uint8_t _dst[32]) const;
 };
 
 
@@ -43,7 +44,7 @@ public:
     uint32_t AddPointer(uint32_t val);
     void RemovePointer();
 
-    void Print();
+    void Print() const;
 
     uint8_t* ExportData() const;
     uint8_t* ExportData(uint8_t _dst[72]) const;

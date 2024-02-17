@@ -18,4 +18,5 @@ public:
     void Print() const;
 
     uint8_t* ExportData();
+    uint8_t* ExportData(uint8_t* _dst);
 };

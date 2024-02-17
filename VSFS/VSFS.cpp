@@ -17,6 +17,7 @@ VSFS::VSFS(uint8_t data[24]) {
 
     SetupParameter();
 }
+VSFS::~VSFS() { delete[] disk; }
 
 void VSFS::SetupParameter() {
     if (inodeNum * sizeof(Inode) > diskSize) {
@@ -53,5 +54,6 @@ size_t VSFS::GetDiskSize() const { return this->diskSize; }
 size_t VSFS::GetInodeNumber() const { return this->inodeNum; }
 size_t VSFS::GetChunkSize() const { return this->chunkSize; }
 
+void VSFS::InitFileSystem() {
 
-VSFS::~VSFS() { delete[] disk; }
+}

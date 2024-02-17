@@ -13,17 +13,14 @@ size_t Super::GetDiskSize() const { return this->diskSize; }
 size_t Super::GetInodeNum() const { return this->inodeNum; }
 size_t Super::GetChunkSize() const { return this->chunkSize; }
 void  Super::Print() const {
-
     std::cout << std::endl << "Disk Size: " << this->diskSize << std::endl;
     std::cout << "Inode number: " << this->inodeNum << std::endl;
     std::cout << "Chunk size: " << this->chunkSize << std::endl;
     std::cout << std::endl;
 }
 
-
-uint8_t* Super::ExportData() {
-    uint8_t* result = new uint8_t[sizeof(size_t) * 3];
-    memcpy(result, this, sizeof(Super));
-
-    return result;
+uint8_t* Super::ExportData() { return ExportData(new uint8_t[sizeof(Super)]); }
+uint8_t* Super::ExportData(uint8_t* _dst) {
+    memcpy(_dst, this, sizeof(Super));
+    return _dst;
 }

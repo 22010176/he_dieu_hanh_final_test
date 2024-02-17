@@ -37,7 +37,7 @@ void Inode::RemovePointer() {
     for (uint32_t i = 0; blocks[i] != defaultEmptyPointer;++i)
         if (blocks[i + 1] == defaultEmptyPointer) blocks[i] = defaultEmptyPointer;
 }
-void Inode::Print() {
+void Inode::Print() const {
     std::cout << "\nInodeID: " << id << "  Type: " << (this->type == FILE ? "File" : "Directory") << std::endl;
     std::cout << "Size: " << size << "  Link: " << link << std::endl << "|";
     for (uint32_t pointer : blocks) printf(" %d |", pointer);
@@ -70,14 +70,14 @@ InodeTable::InodeTable(uint8_t tables[32]) {
 }
 InodeTable::InodeTable(uint32_t id, const std::string& name) : id{ id } { strcpy(this->name, name.c_str()); }
 
-uint8_t* InodeTable::ExportData() {
-    uint8_t* data = new uint8_t[32];
+void InodeTable::Print() const { printf("| ID: %5d NAME: %28s |", this->id, this->name); }
+
+uint8_t* InodeTable::ExportData() const { return ExportData(new uint8_t[32]); }
+uint8_t* InodeTable::ExportData(uint8_t _dst[32]) const {
     size_t offset = 0;
-
-    memcpy(data, &this->id, sizeof(this->id));
+    memcpy(_dst, &this->id, sizeof(this->id));
     offset += sizeof(this->id);
-    memcpy(data + offset, name, sizeof(name));
+    memcpy(_dst + offset, name, sizeof(name));
 
-    return data;
+    return _dst;
 }
-void InodeTable::Print() { printf("| ID: %5d NAME: %28s |", this->id, this->name); }
