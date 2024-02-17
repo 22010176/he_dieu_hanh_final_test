@@ -1,6 +1,9 @@
 #include "StorageManagement.h"
 
 StorageManagement::StorageManagement() : chunkSize{ 0 }, len{ 0 }, offset{ 0 } {}
+// StorageManagement::StorageManagement(const StorageManagement& copied) {
+
+// }
 StorageManagement::StorageManagement(uint8_t data[40]) : Disk(data), bitmap(data + 16) {
     SetupParameter(GetDiskSize(), *((size_t*)data + 4));
 }
@@ -9,7 +12,6 @@ StorageManagement::StorageManagement(size_t diskSize, size_t chunkSize) : Disk(d
 }
 StorageManagement::StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize) : Disk(storage, diskSize) {
     SetupParameter(diskSize, chunkSize);
-
 }
 StorageManagement::~StorageManagement() {}
 
@@ -20,13 +22,12 @@ Bitmap StorageManagement::GetBitmap() const { return bitmap; }
 void StorageManagement::SetChunkSize(size_t size) { SetupParameter(GetDiskSize(), chunkSize); }
 
 uint32_t StorageManagement::GetAddress(uint32_t index) const {
-    // std::cout << std::endl << index << std::endl;
-    // std::cout << chunkSize << std::endl;
     DebugChunk(index);
     return offset + index * chunkSize;
 }
 void StorageManagement::DebugChunk(uint32_t chunk) const {
     if (chunk < this->len)  return;
+    PrintS();
     std::cout << __FILE__ << "#" << __LINE__ << "Invalid Chunk: " << chunk << std::endl;
     exit(-1);
 }
@@ -46,15 +47,16 @@ void StorageManagement::SetupParameter(size_t diskSize, size_t chunkSize) {
     offset = bitmapChunk * chunkSize;
 }
 
-uint32_t StorageManagement::WriteS(uint8_t* data, size_t size) {
-    uint32_t freeChunk = bitmap.GetFreeCell();
-    uint32_t address = GetAddress(freeChunk);
+uint32_t StorageManagement::WriteS(uint8_t* data, size_t size) { return WriteS(bitmap.GetFreeCell(), data, size); }
+uint32_t StorageManagement::WriteS(uint32_t cell, uint8_t* data, size_t size) {
+    bitmap.SetCell(cell, 1);
+    uint32_t address = GetAddress(cell);
     size_t writeSize = std::min(chunkSize - 4, size);
 
     Write(address, (uint8_t*)&writeSize, 4);
     Write(address + 4, data, writeSize);
 
-    return freeChunk;
+    return cell;
 }
 size_t StorageManagement::UpdateS(uint32_t chunk, uint8_t* data, size_t size) {
     size_t chunkCurSize = SizeS(chunk);
@@ -79,6 +81,12 @@ uint8_t* StorageManagement::ReadS(uint32_t chunk) const {
     return Copy(new uint8_t[size], GetAddress(chunk) + 4, size);
 }
 uint8_t* StorageManagement::CopyS(uint8_t* _dst, uint32_t chunk) const { return Copy(_dst, GetAddress(chunk) + 4, SizeS(chunk)); }
+void StorageManagement::PrintS() const {
+    Disk::Print();
+    std::cout << std::endl << "chunkSize: " << chunkSize << " chunk number: " << len << std::endl;
+    std::cout << "chunk offset: " << offset << std::endl;
+    bitmap.Print();
+}
 void StorageManagement::PrintS(uint32_t chunk) const {
     size_t size = SizeS(chunk);
 

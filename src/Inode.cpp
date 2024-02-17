@@ -37,6 +37,17 @@ void Inode::RemovePointer() {
     for (uint32_t i = 0; blocks[i] != defaultEmptyPointer;++i)
         if (blocks[i + 1] == defaultEmptyPointer) blocks[i] = defaultEmptyPointer;
 }
+
+uint32_t Inode::GetId() const { return id; }
+uint32_t Inode::GetType() const { return type; }
+size_t Inode::GetSize() const { return size; }
+size_t Inode::GetLink() const { return link; }
+size_t Inode::GetExportSize() { return 32; }
+std::vector<uint32_t> Inode::GetBlocks() const { return blocks; }
+
+void Inode::SetSize(size_t size) { this->size = size; }
+void Inode::SetLink(size_t link) { this->link = link; }
+
 void Inode::Print() const {
     std::cout << "\nInodeID: " << id << "  Type: " << (this->type == FILE ? "File" : "Directory") << std::endl;
     std::cout << "Size: " << size << "  Link: " << link << std::endl << "|";
@@ -81,3 +92,4 @@ uint8_t* InodeTable::ExportData(uint8_t _dst[32]) const {
 
     return _dst;
 }
+size_t InodeTable::GetExportSize() { return 32; }

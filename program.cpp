@@ -9,9 +9,9 @@ int main() {
     // Test::_StorageManagement3();
     // Test::_Inode();
     // Test::_Disk2();
-    Test::_Super();
+    // Test::_Super();
     // Test::_InodeTable();
-    VSFS file({ 4096,4,64 });
+    // VSFS file({ 1024 * 4 * 16 * 4,128,256 });
 
     std::cout << "TWF";
     return 0;

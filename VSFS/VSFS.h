@@ -29,7 +29,7 @@ public:
     void InitFileSystem();
 
     void mkdir(const std::string& path);
-    void rm(const std::string& path, bool all = false);
+    void open(const std::string& path);
 
     void link(const std::string& _dst, const std::string& _src);
     void unlink(const std::string& _src);

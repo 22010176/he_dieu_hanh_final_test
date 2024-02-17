@@ -33,6 +33,11 @@ uint32_t Bitmap::GetFreeCell() {
     return -1;
 }
 void Bitmap::SetCell(uint32_t cell, char stage) {
+    if (cell > len) {
+        std::cout << "Invalid Cell: " << cell << std::endl;
+        exit(-1);
+    }
+
     if (stage == 0) address[cell / 8] &= ~(1 << (cell % 8));
     else address[cell / 8] |= (1 << (cell % 8));
 }

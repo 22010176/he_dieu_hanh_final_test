@@ -21,8 +21,8 @@ public:
     Disk(uint8_t* storage, size_t disksize);
     ~Disk();
 
-    uint8_t* GetStorage() const;
-    size_t GetDiskSize() const;
+    uint8_t*& GetStorage();
+    size_t& GetDiskSize();
     uint8_t* MapAddress(uint32_t address) const;
 
     void SetStorage(uint8_t* storage);
@@ -31,6 +31,7 @@ public:
     uint8_t* Read(uint32_t address, size_t size) const;
     uint8_t* Copy(uint8_t* _dst, uint32_t address, size_t size) const;
     void Print(uint32_t address, size_t size) const;
+    void Print() const;
 
     uint32_t Write(uint32_t address, uint8_t* data, size_t size);
     uint32_t Free(uint32_t address, size_t size);
