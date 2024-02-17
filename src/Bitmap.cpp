@@ -11,7 +11,7 @@ Bitmap::Bitmap(uint8_t data[16]) {
     memcpy(&this->len, data + 8, 8);
     this->size = CalcSize(this->len, 8);
 }
-Bitmap::Bitmap() {}
+Bitmap::Bitmap() : len{ 0 }, size{ 0 }, address{ nullptr } {}
 Bitmap::~Bitmap() { memset(address, 0, size); }
 
 size_t Bitmap::GetTotalCell() const { return this->len; }

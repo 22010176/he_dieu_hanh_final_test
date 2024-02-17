@@ -1,6 +1,6 @@
 #include "StorageManagement.h"
 
-StorageManagement::~StorageManagement() {}
+StorageManagement::StorageManagement() : chunkSize{ 0 }, len{ 0 }, offset{ 0 } {}
 StorageManagement::StorageManagement(uint8_t data[40]) : Disk(data), bitmap(data + 16) {
     SetupParameter(GetDiskSize(), *((size_t*)data + 4));
 }
@@ -10,11 +10,13 @@ StorageManagement::StorageManagement(size_t diskSize, size_t chunkSize) : Disk(d
 StorageManagement::StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize) : Disk(storage, diskSize) {
     SetupParameter(diskSize, chunkSize);
 }
+StorageManagement::~StorageManagement() {}
 
 size_t StorageManagement::GetChunkNumber() const { return len; }
 size_t StorageManagement::GetChunkSize() const { return chunkSize; }
 Bitmap StorageManagement::GetBitmap() const { return bitmap; }
 
+void StorageManagement::SetChunkSize(size_t size) { SetupParameter(GetDiskSize(), chunkSize); }
 
 uint32_t StorageManagement::GetAddress(uint32_t index) const {
     // std::cout << std::endl << index << std::endl;
@@ -28,6 +30,11 @@ void StorageManagement::DebugChunk(uint32_t chunk) const {
     exit(-1);
 }
 void StorageManagement::SetupParameter(size_t diskSize, size_t chunkSize) {
+    if (chunkSize <= 4) {
+        std::cout << "Invalid Chunk size, need to bigger than 4" << std::endl;
+        exit(-1);
+    }
+
     this->chunkSize = chunkSize;
     len = diskSize / chunkSize;
 

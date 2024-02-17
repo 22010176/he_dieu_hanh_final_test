@@ -12,6 +12,9 @@ Disk::~Disk() { delete[] storage; }
 uint8_t* Disk::GetStorage() const { return storage; }
 size_t Disk::GetDiskSize() const { return diskSize; }
 
+void Disk::SetStorage(uint8_t* storage) { this->storage = storage; }
+void Disk::SetDiskSize(size_t size) { this->diskSize = size; }
+
 void Disk::DebugAddress(uint32_t address) const {
     if (address < diskSize) return;
     if (storage == nullptr) {

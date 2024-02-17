@@ -26,6 +26,9 @@ public:
     size_t GetDiskSize() const;
     uint8_t* MapAddress(uint32_t address) const;
 
+    void SetStorage(uint8_t* storage);
+    void SetDiskSize(size_t size);
+
     uint8_t* Read(uint32_t address, size_t size) const;
     uint8_t* Copy(uint8_t* _dst, uint32_t address, size_t size) const;
     void Print(uint32_t address, size_t size) const;
