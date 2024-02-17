@@ -60,6 +60,30 @@ void Test::_Disk2() {
 }
 void Test::_Inode() {
 
+    Inode a(4, 1);
+
+    a.AddPointer(5);
+    a.AddPointer(2);
+    a.AddPointer(3);
+    a.AddPointer(4);
+    a.AddPointer(4);
+    a.AddPointer(4);
+    a.RemovePointer();
+    a.AddPointer(5);
+    a.AddPointer(4);
+    a.AddPointer(4);
+
+    a.RemovePointer();
+    a.RemovePointer();
+
+    uint8_t* data = a.ExportData();
+
+    Inode b(data);
+
+    b.Print();
+    a.Print();
+
+    delete[] data;
 }
 void Test::_Path() {
 

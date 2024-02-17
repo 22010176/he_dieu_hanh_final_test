@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cstdint>
 
+#include "StorageManagement.h"
+
 struct InodeTable {
     uint32_t id;
     char name[28];
@@ -20,18 +22,27 @@ struct InodeTable {
 // 64
 class Inode {
 private:
+    const static size_t InodeBlockSize;
+    const static uint32_t defaultEmptyPointer;
+
+    const static uint32_t DIRECTORY;
+    const static uint32_t FILE;
+
     uint32_t id, type;
     size_t size, link;
     std::vector<uint32_t> blocks;
 
 public:
-    Inode(char data[64]);
-    Inode(uint32_t id, size_t size, uint32_t type);
+    Inode();
+    Inode(uint8_t data[72]);
+    Inode(uint32_t id, uint32_t type);
     ~Inode();
 
-    void AddLink(InodeTable table);
-    void AddLink(uint32_t id, char name[28]);
-    char* ExportData();
+    uint32_t FindFreePointer() const;
+    uint32_t AddPointer(uint32_t val);
+    void RemovePointer();
 
     void Print();
+
+    uint8_t* ExportData();
 };

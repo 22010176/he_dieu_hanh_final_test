@@ -8,7 +8,8 @@
 int main() {
     // Test::_StorageManagement2();
     // std::cout << sizeof(size_t);
-    Test::_StorageManagement3();
+    // Test::_StorageManagement3();
+    Test::_Inode();
 
     std::cout << "TWF";
     return 0;
