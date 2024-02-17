@@ -1,6 +1,11 @@
 #include "Bitmap.h"
 
 Bitmap::Bitmap(uint8_t* address, size_t len) : address{ (uint8_t*)memset(address,0,CalcSize(len,8)) }, len{ len }, size{ CalcSize(len,8) } {}
+Bitmap::Bitmap(uint8_t* address, uint8_t* data) : address{ address } {
+    this->len = *(size_t*)data;
+    this->size = CalcSize(len, 8);
+    memcpy(this->address, data + sizeof(len), size);
+}
 Bitmap::Bitmap(uint8_t data[16]) {
     memcpy(&this->address, data, 8);
     memcpy(&this->len, data + 8, 8);
@@ -40,7 +45,18 @@ void Bitmap::Print() const {
 }
 uint8_t* Bitmap::ExportData() const {
     uint8_t* data = new uint8_t[16];
+
     memcpy(data, &this->address, sizeof(uint8_t*));
     memcpy(data + sizeof(uint8_t*), &this->len, sizeof(size_t));
+
+    return data;
+}
+
+uint8_t* Bitmap::ExportRawData() const {
+    uint8_t* data = new uint8_t[size + sizeof(len)];
+
+    memcpy(data, &len, sizeof(len));
+    memcpy(data + sizeof(len), this->address, size);
+
     return data;
 }

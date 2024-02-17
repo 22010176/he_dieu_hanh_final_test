@@ -11,11 +11,12 @@ struct InodeTable {
     uint32_t id;
     char name[28];
 
-    InodeTable(char* tables, size_t size);
+    InodeTable(uint8_t tables[32]);
     InodeTable(uint32_t id, const std::string& name);
 
-    uint8_t* ExportData();
     void Print();
+
+    uint8_t* ExportData();
 };
 
 

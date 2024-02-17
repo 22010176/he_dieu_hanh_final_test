@@ -20,6 +20,7 @@ struct Test {
     static void _Disk();
     static void _Disk2();
     static void _Inode();
+    static void _InodeTable();
     static void _Path();
     static void _StorageManagement1();
     static void _StorageManagement2();

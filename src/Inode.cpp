@@ -64,3 +64,21 @@ uint8_t* Inode::ExportData() {
 
     return data;
 }
+
+InodeTable::InodeTable(uint8_t tables[32]) {
+    this->id = *(uint32_t*)tables;
+    strcpy(this->name, (char*)tables + 4);
+}
+InodeTable::InodeTable(uint32_t id, const std::string& name) : id{ id } { strcpy(this->name, name.c_str()); }
+
+uint8_t* InodeTable::ExportData() {
+    uint8_t* data = new uint8_t[32];
+    size_t offset = 0;
+
+    memcpy(data, &this->id, sizeof(this->id));
+    offset += sizeof(this->id);
+    memcpy(data + offset, name, sizeof(name));
+
+    return data;
+}
+void InodeTable::Print() { printf("| ID: %5d NAME: %28s |", this->id, this->name); }

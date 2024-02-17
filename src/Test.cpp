@@ -19,11 +19,18 @@ void Test::_Bitmap() {
 
     Bitmap b(x);
 
+    uint8_t* sdd = a.ExportRawData();
+    uint8_t xee[a.GetBitmapSize()];
+    Bitmap c(xee, sdd);
 
+
+    c.Print();
     a.Print();
+    // PrintMem(sdd, 11);
     b.Print();
 
     delete[] x;
+    delete[] sdd;
 }
 void Test::_Disk() {
     Disk a(1024);
@@ -82,6 +89,15 @@ void Test::_Inode() {
 
     b.Print();
     a.Print();
+
+    delete[] data;
+}
+void Test::_InodeTable() {
+    InodeTable table(5, "122");
+
+    uint8_t* data = table.ExportData();
+    InodeTable d(data);
+    d.Print();
 
     delete[] data;
 }
@@ -159,7 +175,14 @@ void Test::_StorageManagement3() {
     delete[] rest;
 }
 void Test::_Super() {
+    Super s(1024, 128, 156);
+    s.Print();
 
+    uint8_t* dat = s.ExportData();
+    Super a(dat);
+    a.Print();
+
+    delete[] dat;
 }
 void Test::_Utils() {
 

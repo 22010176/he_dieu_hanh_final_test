@@ -8,6 +8,7 @@
                 // "-I.",
                 "-std=c++23",
                 "src/*.cpp",
+                "VSFS/*.cpp",
                 "*.cpp",
                 "-o",
                 "${workspaceFolder}\\out\\program.exe"

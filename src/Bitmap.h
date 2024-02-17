@@ -8,11 +8,12 @@
 // 8 * 3 = 24
 class Bitmap {
 private:
-    uint8_t* address;
     size_t len, size;
+    uint8_t* address;
 public:
     Bitmap();
     Bitmap(uint8_t data[16]);
+    Bitmap(uint8_t* address, uint8_t* data);
     Bitmap(uint8_t* address, size_t len);
     ~Bitmap();
 
@@ -26,4 +27,5 @@ public:
 
     void Print() const;
     uint8_t* ExportData() const;
+    uint8_t* ExportRawData() const;
 };

@@ -1,14 +1,21 @@
 #pragma once
 
-#include "Bitmap.h"
+#include "Disk.h"
+#include "Inode.h"
+#include "StorageManagement.h"
 
 class Super {
-    uint8_t* disk;
-    size_t diskSize, chunkSize;
-    Bitmap inodes, datas;
-    uint32_t rootInode;
+private:
+    size_t diskSize, inodeNum, chunkSize;
+public:
+    Super(uint8_t data[24]);
+    Super(size_t diskSize, size_t inodeNum, size_t chunkSize);
 
-    Super(char data[]);
+    size_t GetDiskSize() const;
+    size_t GetInodeNum() const;
+    size_t GetChunkSize() const;
 
-    char* ExportData();
+    void Print() const;
+
+    uint8_t* ExportData();
 };
