@@ -17,6 +17,7 @@ private:
     void DebugSize(size_t size) const;
 public:
     Disk();
+    Disk(uint8_t data[16]);
     Disk(size_t disksize);
     Disk(uint8_t* storage, size_t disksize);
     ~Disk();
@@ -31,4 +32,6 @@ public:
 
     uint32_t Write(uint32_t address, uint8_t* data, size_t size);
     uint32_t Free(uint32_t address, size_t size);
+
+    uint8_t* ExportData() const;
 };

@@ -5,7 +5,7 @@ void Test::_Bitmap() {
     Bitmap a(data, sizeof(data));
 
     std::cout << a.GetFreeCell() << std::endl;
-    char* x = a.ExportData();
+    uint8_t* x = a.ExportData();
 
     for (int i = 0; i < a.GetTotalCell(); ++i) a.GetFreeCell();
     a.FreeCell(4);
@@ -39,8 +39,24 @@ void Test::_Disk() {
 
     a.Free(200, sizeof(x));
     a.Print(200, sizeof(x));
-
     delete[] ab;
+}
+void Test::_Disk2() {
+    Disk a(1024);
+    size_t len = 200;
+    uint32_t x[len];
+
+    for (int i = 0; i < len; ++i) x[i] = (i + 1) << 8;
+    a.Write(200, (uint8_t*)x, sizeof(x));
+
+    uint8_t* data = a.ExportData();
+    Disk b(data);
+
+    b.Print(200, sizeof(x));
+    uint32_t* ab = (uint32_t*)b.Read(200, sizeof(x));
+    for (int i = 0; i < len; ++i) std::cout << ab[i] << std::endl;
+
+    delete[] data;
 }
 void Test::_Inode() {
 
@@ -67,7 +83,56 @@ void Test::_StorageManagement1() {
 
     storage.PrintS(chunk);
     delete[] rest;
+}
+void Test::_StorageManagement2() {
+    StorageManagement storage(2048, 256);
+    size_t len = 100;
+    uint32_t x[len];
 
+    // PrintMem(storage.GetStorage(), storage.GetDiskSize());
+    for (int i = 0; i < len; ++i) x[i] = (i + 1);
+
+    std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x));
+    uint32_t* rest = (uint32_t*)storage.ReadM(chunk);
+
+    for (int i = 0; i < storage.SizeM(chunk) / 4; ++i) {
+        // if (rest[i] == x[i]) continue;
+        std::cout << rest[i] << " ";
+    }
+    // storage.GetBitmap().Print();
+
+    storage.PrintM(chunk);
+    storage.GetBitmap().Print();
+
+    storage.FreeM(chunk);
+    storage.GetBitmap().Print();
+    storage.PrintM(chunk);
+
+    delete[] rest;
+}
+void Test::_StorageManagement3() {
+    StorageManagement storage(2048, 256);
+    size_t len = 100;
+    uint32_t x[len];
+
+    // PrintMem(storage.GetStorage(), storage.GetDiskSize());
+    for (int i = 0; i < len; ++i) x[i] = (i + 1);
+
+    std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x));
+
+    uint8_t* data = storage.ExportData();
+    StorageManagement b(data);
+    b.PrintM(chunk);
+
+    uint32_t* rest = (uint32_t*)b.ReadM(chunk);
+    std::cout << std::endl;
+    for (int i = 0; i < b.SizeM(chunk) / 4; ++i) {
+        // if (rest[i] == x[i]) continue;
+        std::cout << rest[i] << " ";
+    }
+
+    delete[] data;
+    delete[] rest;
 }
 void Test::_Super() {
 

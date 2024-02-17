@@ -11,9 +11,9 @@ private:
     uint8_t* address;
     size_t len, size;
 public:
-    Bitmap(uint8_t* address, size_t size);
-    Bitmap(char data[24]);
     Bitmap();
+    Bitmap(uint8_t data[16]);
+    Bitmap(uint8_t* address, size_t len);
     ~Bitmap();
 
     size_t GetTotalCell() const;
@@ -25,5 +25,5 @@ public:
     void SetCell(uint32_t cell, char stage);
 
     void Print() const;
-    char* ExportData() const;
+    uint8_t* ExportData() const;
 };

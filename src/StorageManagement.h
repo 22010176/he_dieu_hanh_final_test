@@ -15,6 +15,7 @@ private:
     void DebugChunk(uint32_t chunk) const;
     void SetupParameter(size_t diskSize, size_t chunkSize);
 public:
+    StorageManagement(uint8_t a[40]);
     StorageManagement(size_t diskSize, size_t chunkSize);
     StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize);
     ~StorageManagement();
@@ -33,12 +34,15 @@ public:
     size_t UpdateS(uint32_t chunk, uint8_t* data, size_t size);
     uint32_t FreeS(uint32_t chunk);
 
+    uint8_t* ReadM(std::vector<uint32_t> chunk) const;                                  // Read
+    uint8_t* CopyM(uint8_t* _dst, std::vector<uint32_t> chunk) const;
+    void PrintM(std::vector<uint32_t> chunk) const;
+    size_t SizeM(std::vector<uint32_t> chunk) const;                                  // Sized
+
     std::vector<uint32_t> WriteM(uint8_t* data, size_t size);                     // Write
-    uint8_t* ReadM(std::vector<uint32_t> chunk);                                  // Read
-    uint8_t* CopyM(uint8_t* _dst, std::vector<uint32_t> chunk);
-    void PrintM(std::vector<uint32_t> chunk);
     void FreeM(std::vector<uint32_t> chunk);
-    size_t SizeM(std::vector<uint32_t> chunk);                                  // Sized
     std::vector<uint32_t> PackM(std::vector<uint32_t> chunk);
+
+    uint8_t* ExportData() const;
 };
 

@@ -22,3 +22,8 @@ void PrintMem(uint8_t* data, size_t size) {
     }
 }
 size_t CalcSize(size_t size1, size_t size2) { return (size_t)ceil((float)size1 / size2); }
+std::string JoinStr(std::vector<std::string>& src, const std::string& e) {
+    std::string res;
+    for (const std::string& s : src) res += s + e;
+    return res;
+}

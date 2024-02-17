@@ -11,3 +11,4 @@ std::vector<std::string> SplitString(const std::string& src, const std::string& 
 uint32_t ReadBit(uint32_t byte, uint32_t bit);
 void PrintMem(uint8_t* data, size_t size);
 size_t CalcSize(size_t size1, size_t size2);
+std::string JoinStr(std::vector<std::string>& src, const std::string& e = "");
