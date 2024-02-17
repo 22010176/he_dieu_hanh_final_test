@@ -44,25 +44,24 @@ void Inode::Print() {
     std::cout << std::endl;
 }
 
-uint8_t* Inode::ExportData() {
-    uint8_t* data = new uint8_t[72];
+uint8_t* Inode::ExportData() const { return ExportData(new uint8_t[72]); }
+uint8_t* Inode::ExportData(uint8_t _dst[72]) const {
     size_t offset = 0;
-
-    memcpy(data, &this->id, sizeof(this->id));
+    memcpy(_dst, &this->id, sizeof(this->id));
     offset += sizeof(this->id);
     std::cout << this->type << std::endl;
-    memcpy(data + offset, &this->type, sizeof(this->type));
+    memcpy(_dst + offset, &this->type, sizeof(this->type));
     offset += sizeof(this->type);
 
-    memcpy(data + offset, &this->size, sizeof(this->size));
+    memcpy(_dst + offset, &this->size, sizeof(this->size));
     offset += sizeof(this->size);
 
-    memcpy(data + offset, &this->link, sizeof(this->link));
+    memcpy(_dst + offset, &this->link, sizeof(this->link));
     offset += sizeof(this->link);
 
-    memcpy(data + offset, blocks.data(), sizeof(uint32_t) * Inode::InodeBlockSize);
+    memcpy(_dst + offset, blocks.data(), sizeof(uint32_t) * Inode::InodeBlockSize);
 
-    return data;
+    return _dst;
 }
 
 InodeTable::InodeTable(uint8_t tables[32]) {

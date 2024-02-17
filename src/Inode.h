@@ -4,8 +4,8 @@
 #include <string>
 #include <cstdlib>
 #include <cstdint>
-
-#include "StorageManagement.h"
+#include <iostream>
+#include <cstring>
 
 struct InodeTable {
     uint32_t id;
@@ -45,5 +45,6 @@ public:
 
     void Print();
 
-    uint8_t* ExportData();
+    uint8_t* ExportData() const;
+    uint8_t* ExportData(uint8_t _dst[72]) const;
 };

@@ -7,7 +7,7 @@ Disk::Disk(uint8_t data[16]) {
 }
 Disk::Disk(size_t size) : diskSize{ size }, storage{ new uint8_t[size]() } {}
 Disk::Disk(uint8_t* storage, size_t disksize) : storage{ storage }, diskSize{ diskSize } {}
-Disk::~Disk() { delete[] storage; }
+Disk::~Disk() {}
 
 uint8_t* Disk::GetStorage() const { return storage; }
 size_t Disk::GetDiskSize() const { return diskSize; }
@@ -55,10 +55,9 @@ uint32_t Disk::Free(uint32_t address, size_t size) {
     return 1;
 }
 
-uint8_t* Disk::ExportData() const {
-    uint8_t* data = new uint8_t[16];
-    memcpy(data, &this->diskSize, sizeof(size_t));
-    memcpy(data + sizeof(size_t), &this->storage, sizeof(uint8_t*));
-
-    return data;
+uint8_t* Disk::ExportData() const { return ExportData(new uint8_t[16]); }
+uint8_t* Disk::ExportData(uint8_t _dst[16]) const {
+    memcpy(_dst, &this->diskSize, sizeof(size_t));
+    memcpy(_dst + sizeof(size_t), &this->storage, sizeof(uint8_t*));
+    return _dst;
 }

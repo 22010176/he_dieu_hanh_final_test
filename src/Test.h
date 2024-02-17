@@ -1,19 +1,6 @@
 #pragma once
 
-#include <cstdint>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <cstring>
-#include <cstdlib>
-
-#include "Bitmap.h"
-#include "Disk.h"
-#include "Inode.h"
-#include "Path.h"
-#include "StorageManagement.h"
-#include "Super.h"
-#include "Utils.h"
+#include "All.h"
 
 struct Test {
     static void _Bitmap();

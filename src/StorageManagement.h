@@ -47,5 +47,6 @@ public:
     std::vector<uint32_t> PackM(std::vector<uint32_t> chunk);
 
     uint8_t* ExportData() const;
+    uint8_t* ExportData(uint8_t _dst[40]) const;
 };
 

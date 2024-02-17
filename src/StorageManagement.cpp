@@ -9,6 +9,7 @@ StorageManagement::StorageManagement(size_t diskSize, size_t chunkSize) : Disk(d
 }
 StorageManagement::StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize) : Disk(storage, diskSize) {
     SetupParameter(diskSize, chunkSize);
+
 }
 StorageManagement::~StorageManagement() {}
 
@@ -37,7 +38,6 @@ void StorageManagement::SetupParameter(size_t diskSize, size_t chunkSize) {
 
     this->chunkSize = chunkSize;
     len = diskSize / chunkSize;
-
     bitmap = Bitmap(this->GetStorage(), len);
     size_t bitmapChunk = CalcSize(bitmap.GetBitmapSize(), chunkSize);
     for (uint32_t i = 1; i <= bitmapChunk; ++i) bitmap.SetCell(bitmap.GetTotalCell() - i, 1);
@@ -130,12 +130,10 @@ std::vector<uint32_t> StorageManagement::PackM(std::vector<uint32_t> chunk) {
     return WriteM(x, size);
 };
 
-uint8_t* StorageManagement::ExportData() const {
-    uint8_t* data = new uint8_t[40];
-
-    memcpy(data, Disk::ExportData(), 16);
-    memcpy(data + 16, bitmap.ExportData(), 16);
-    memcpy(data + 32, &this->chunkSize, sizeof(size_t));
-
-    return data;
+uint8_t* StorageManagement::ExportData() const { return ExportData(new uint8_t[40]); }
+uint8_t* StorageManagement::ExportData(uint8_t _dst[40]) const {
+    memcpy(_dst, Disk::ExportData(), 16);
+    memcpy(_dst + 16, bitmap.ExportData(), 16);
+    memcpy(_dst + 32, &this->chunkSize, sizeof(size_t));
+    return _dst;
 }

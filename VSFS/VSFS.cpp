@@ -1,24 +1,24 @@
 #include "VSFS.h"
 
 VSFS::VSFS(Super super) {
-    size_t diskSize = super.GetDiskSize();
-    size_t inodeNum = super.GetInodeNum();
-    size_t chunkSize = super.GetChunkSize();
+    this->diskSize = super.GetDiskSize();
+    this->inodeNum = super.GetInodeNum();
+    this->chunkSize = super.GetChunkSize();
 
 
-    SetupParameter(diskSize, inodeNum, chunkSize);
+    SetupParameter();
 }
 VSFS::VSFS(uint8_t data[24]) {
     size_t* temp = (size_t*)data;
 
-    size_t diskSize = temp[0];
-    size_t inodeNum = temp[1];
-    size_t chunkSize = temp[2];
+    this->diskSize = temp[0];
+    this->inodeNum = temp[1];
+    this->chunkSize = temp[2];
 
-    SetupParameter(diskSize, inodeNum, chunkSize);
+    SetupParameter();
 }
 
-inline void VSFS::SetupParameter(size_t diskSize, size_t inodeNum, size_t chunkSize) {
+void VSFS::SetupParameter() {
     if (inodeNum * sizeof(Inode) > diskSize) {
         std::cout << "Invalid Inode size" << std::endl;
         exit(-1);
@@ -27,15 +27,31 @@ inline void VSFS::SetupParameter(size_t diskSize, size_t inodeNum, size_t chunkS
         std::cout << "Invalid chunkSize size" << std::endl;
         exit(-1);
     }
-    size_t InodeChunkNum =
+
+    size_t inodeChunkNum =
         CalcSize(inodeNum * sizeof(Inode), chunkSize) +
         CalcSize(CalcSize(inodeNum, 8), chunkSize);
 
-    size_t totalNotDataChunk = (1 + InodeChunkNum) * chunkSize;
+    size_t totalNotDataChunk = 1 + inodeChunkNum;
     size_t dataOffset = totalNotDataChunk * chunkSize;
 
+    std::cout << diskSize << " " << dataOffset << " " << totalNotDataChunk << " " << inodeChunkNum << std::endl;
+    if (dataOffset > diskSize) {
+        std::cout << "Not enough place for data" << std::endl;
+        exit(-1);
+    }
+
     this->disk = new uint8_t[diskSize];
-    this->indoes = StorageManagement(disk + chunkSize, InodeChunkNum * chunkSize, sizeof(Inode));
+    this->indoes = StorageManagement(disk + chunkSize, inodeChunkNum * chunkSize, sizeof(Inode));
     this->datas = StorageManagement(disk + dataOffset, diskSize - dataOffset, chunkSize);
 }
+
+StorageManagement VSFS::GetInodes() const { return indoes; }
+StorageManagement VSFS::GetDatas() const { return datas; }
+
+size_t VSFS::GetDiskSize() const { return this->diskSize; }
+size_t VSFS::GetInodeNumber() const { return this->inodeNum; }
+size_t VSFS::GetChunkSize() const { return this->chunkSize; }
+
+
 VSFS::~VSFS() { delete[] disk; }

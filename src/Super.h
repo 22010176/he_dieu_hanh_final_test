@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Disk.h"
-#include "Inode.h"
-#include "StorageManagement.h"
+#include <cstdlib>
+#include <cstdint>
+#include <iostream>
 
 class Super {
 private:

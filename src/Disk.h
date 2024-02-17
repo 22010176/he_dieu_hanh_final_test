@@ -1,11 +1,10 @@
 #pragma once
 
-#include "cstdlib"
-#include "cstring"
-#include "iostream"
-#include "algorithm"
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include  <cstdint>
 
-#include "Bitmap.h"
 #include "Utils.h"
 
 class Disk {
@@ -37,4 +36,5 @@ public:
     uint32_t Free(uint32_t address, size_t size);
 
     uint8_t* ExportData() const;
+    uint8_t* ExportData(uint8_t _dst[16]) const;
 };

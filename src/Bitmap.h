@@ -1,7 +1,9 @@
 #pragma once
 
-#include "cstring"
-#include "cmath"
+#include <cstring>
+#include <cmath>
+#include <iostream>
+#include <cstdint>
 
 #include "Utils.h"
 
@@ -26,6 +28,10 @@ public:
     void SetCell(uint32_t cell, char stage);
 
     void Print() const;
+
     uint8_t* ExportData() const;
+    uint8_t* ExportData(uint8_t _dst[16]) const;
+
     uint8_t* ExportRawData() const;
+    uint8_t* ExportRawData(uint8_t* _dst) const;
 };

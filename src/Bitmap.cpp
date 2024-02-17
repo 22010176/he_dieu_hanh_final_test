@@ -12,7 +12,7 @@ Bitmap::Bitmap(uint8_t data[16]) {
     this->size = CalcSize(this->len, 8);
 }
 Bitmap::Bitmap() : len{ 0 }, size{ 0 }, address{ nullptr } {}
-Bitmap::~Bitmap() { memset(address, 0, size); }
+Bitmap::~Bitmap() {}
 
 size_t Bitmap::GetTotalCell() const { return this->len; }
 size_t Bitmap::GetBitmapSize() const { return this->size; }
@@ -46,17 +46,20 @@ void Bitmap::Print() const {
 uint8_t* Bitmap::ExportData() const {
     uint8_t* data = new uint8_t[16];
 
-    memcpy(data, &this->address, sizeof(uint8_t*));
-    memcpy(data + sizeof(uint8_t*), &this->len, sizeof(size_t));
+    // memcpy(data, &this->address, sizeof(uint8_t*));
+    // memcpy(data + sizeof(uint8_t*), &this->len, sizeof(size_t));
 
-    return data;
+    return ExportData(data);
+}
+uint8_t* Bitmap::ExportData(uint8_t _dst[16]) const {
+    memcpy(_dst, &this->address, sizeof(uint8_t*));
+    memcpy(_dst + sizeof(uint8_t*), &this->len, sizeof(size_t));
+    return _dst;
 }
 
-uint8_t* Bitmap::ExportRawData() const {
-    uint8_t* data = new uint8_t[size + sizeof(len)];
-
-    memcpy(data, &len, sizeof(len));
-    memcpy(data + sizeof(len), this->address, size);
-
-    return data;
+uint8_t* Bitmap::ExportRawData() const { return ExportRawData(new uint8_t[size + sizeof(len)]); }
+uint8_t* Bitmap::ExportRawData(uint8_t* _dst) const {
+    memcpy(_dst, &len, sizeof(len));
+    memcpy(_dst + sizeof(len), this->address, size);
+    return _dst;
 }
