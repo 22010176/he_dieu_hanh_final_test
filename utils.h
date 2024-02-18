@@ -25,7 +25,7 @@ char** SplitStringExceptLast(char* string, char* p);
 uint32_t SizeStringArr(char** string);
 char* JoinString(char* result, char** string, char* add);
 char* JoinStringExceptLast(char* result, char** string, char* add);
+char* GetFileName(char** path);
 uint8_t ReadBit(uint8_t x, uint8_t bit);
-
 
 #endif

@@ -72,5 +72,9 @@ char* JoinStringExceptLast(char* result, char** string, char* add) {
     }
     return result;
 }
+char* GetFileName(char** path) {
+    for (int i = 0; path[i] != NULL; ++i) if (path[i + 1] == NULL)
+        return strcpy(_ca(strlen(path[i]) + 1), path[i]);
+    return "";
+}
 uint8_t ReadBit(uint8_t x, uint8_t bit) { return (x & (1 << bit)) >> bit; }
-

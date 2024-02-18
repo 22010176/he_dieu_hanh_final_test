@@ -5,13 +5,15 @@
             "label": "C/C++: gcc.exe build active file",
             "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
             "args": [
-                "${workspaceFolder}\\src\\*.c",
-                "${workspaceFolder}\\*.c",
+                "-fdiagnostics-color=always",
+                "-g",
+                "${workspaceFolder}\\utils.c",
+                "${workspaceFolder}\\vsfs.c",
                 "-o",
-                "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}\\out\\${fileBasenameNoExtension}.exe"
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${fileDirname}"
             },
             "problemMatcher": [
                 "$gcc"

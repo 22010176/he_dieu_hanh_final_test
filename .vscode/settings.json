@@ -1,17 +1,16 @@
 {
     "files.associations": {
-        "stdlib.h": "c",
-        "stdint.h": "c",
-        "stdio.h": "c",
-        "string.h": "c",
-        "ctype.h": "c",
-        "types.h": "c",
-        "utils.h": "c",
-        "cmath": "c",
-        "time.h": "c",
-        "conio.h": "c",
-        "disk.h": "c",
-        "constant.h": "c",
-        "limits.h": "c"
+        "math.h": "c",
+        "array": "c",
+        "bitset": "c",
+        "string_view": "c",
+        "format": "c",
+        "initializer_list": "c",
+        "ranges": "c",
+        "span": "c",
+        "stacktrace": "c",
+        "regex": "c",
+        "valarray": "c",
+        "utils.h": "c"
     }
 }
