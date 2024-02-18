@@ -13,6 +13,8 @@ private:
     size_t len, size;
     uint8_t* address;
 public:
+    static size_t GetExportSize();
+
     Bitmap();
     Bitmap(uint8_t data[16]);
     Bitmap(uint8_t* address, uint8_t* data);

@@ -7,6 +7,9 @@
 #include <sstream>
 #include <cmath>
 
+#define DEBUG(x) std::cout << std::endl << __FILE__ << "#" << __LINE__ << " " << __func__ << ": " << #x << std::endl; x
+
+
 std::vector<std::string> SplitString(const std::string& src, const std::string& del, uint32_t skip = 0);
 uint32_t ReadBit(uint32_t byte, uint32_t bit);
 void PrintMem(uint8_t* data, size_t size);

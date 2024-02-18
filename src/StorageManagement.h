@@ -7,6 +7,9 @@
 #include "Disk.h"
 #include "Bitmap.h"
 
+// Fuck export Data, dont use it;
+// doesnt Test PackeM either, but hope it will work
+
 class StorageManagement : public Disk {
 private:
     size_t chunkSize, len, offset;
@@ -21,6 +24,8 @@ public:
     StorageManagement(size_t diskSize, size_t chunkSize);
     StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize);
     ~StorageManagement();
+
+    StorageManagement& operator=(const StorageManagement& _src);
 
     size_t GetChunkNumber() const;
     size_t GetChunkSize() const;

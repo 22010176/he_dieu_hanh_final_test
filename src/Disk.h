@@ -15,6 +15,8 @@ private:
     void DebugAddress(uint32_t address) const;
     void DebugSize(size_t size) const;
 public:
+    static size_t GetExportSize();
+
     Disk();
     Disk(uint8_t data[16]);
     Disk(size_t disksize);
@@ -27,6 +29,8 @@ public:
 
     void SetStorage(uint8_t* storage);
     void SetDiskSize(size_t size);
+    void SetStorage(uint8_t*& storage);
+    void SetDiskSize(size_t& size);
 
     uint8_t* Read(uint32_t address, size_t size) const;
     uint8_t* Copy(uint8_t* _dst, uint32_t address, size_t size) const;

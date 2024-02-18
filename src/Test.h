@@ -2,6 +2,8 @@
 
 #include "All.h"
 
+
+
 struct Test {
     static void _Bitmap();
     static void _Disk();
@@ -12,6 +14,8 @@ struct Test {
     static void _StorageManagement1();
     static void _StorageManagement2();
     static void _StorageManagement3();
+    static void _StorageManagement3(StorageManagement& a);
+    static void _StorageManagement3(StorageManagement*& a);
     static void _Super();
     static void _Utils();
 };

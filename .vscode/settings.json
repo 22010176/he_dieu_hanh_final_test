@@ -93,5 +93,6 @@
         "variant": "cpp",
         "types.h": "c",
         "utils.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

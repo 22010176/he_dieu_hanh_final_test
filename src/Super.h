@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <iostream>
 
+#include "Utils.h"
+
 class Super {
 private:
     size_t diskSize, inodeNum, chunkSize;

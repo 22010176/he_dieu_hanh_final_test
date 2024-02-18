@@ -3,15 +3,14 @@
 #include "../src/StorageManagement.h"
 #include "../src/Super.h"
 #include "../src/Inode.h"
-
-
+#include "../src/Utils.h"
 
 class VSFS {
 private:
     uint8_t* disk;
     uint32_t rootInode;
     size_t diskSize, inodeNum, chunkSize;
-    StorageManagement indoes, datas;
+    StorageManagement* indoes, * datas;
 
 public:
     VSFS(Super super);
@@ -19,8 +18,8 @@ public:
 
     void SetupParameter();
 
-    StorageManagement GetInodes() const;
-    StorageManagement GetDatas() const;
+    StorageManagement* GetInodes() const;
+    StorageManagement* GetDatas() const;
 
     size_t GetDiskSize() const;
     size_t GetInodeNumber() const;

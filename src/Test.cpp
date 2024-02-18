@@ -1,119 +1,119 @@
 #include "Test.h"
 
 void Test::_Bitmap() {
-    uint8_t data[24];
-    Bitmap a(data, sizeof(data));
+    DEBUG(uint8_t data[24]);
+    DEBUG(Bitmap a(data, sizeof(data)));
 
-    std::cout << a.GetFreeCell() << std::endl;
-    uint8_t* x = a.ExportData();
+    DEBUG(std::cout << a.GetFreeCell() << std::endl);
+    DEBUG(uint8_t * x = a.ExportData());
 
-    for (int i = 0; i < a.GetTotalCell(); ++i) a.GetFreeCell();
-    a.FreeCell(4);
-    a.FreeCell(8);
-    a.FreeCell(12);
-    a.FreeCell(16);
-    a.FreeCell(20);
-    a.FreeCell(21);
-    a.FreeCell(32);
-    a.FreeCell(83);
+    DEBUG(for (int i = 0; i < a.GetTotalCell(); ++i) a.GetFreeCell());
+    DEBUG(a.FreeCell(4));
+    DEBUG(a.FreeCell(8));
+    DEBUG(a.FreeCell(12));
+    DEBUG(a.FreeCell(16));
+    DEBUG(a.FreeCell(20));
+    DEBUG(a.FreeCell(21));
+    DEBUG(a.FreeCell(32));
+    DEBUG(a.FreeCell(83));
 
-    Bitmap b(x);
+    DEBUG(Bitmap b(x));
 
-    uint8_t* sdd = a.ExportRawData();
-    uint8_t xee[a.GetBitmapSize()];
-    Bitmap c(xee, sdd);
+    DEBUG(uint8_t * sdd = a.ExportRawData());
+    DEBUG(uint8_t xee[a.GetBitmapSize()]);
+    DEBUG(Bitmap c(xee, sdd));
 
 
-    c.Print();
-    a.Print();
-    // PrintMem(sdd, 11);
-    b.Print();
+    DEBUG(c.Print());
+    DEBUG(a.Print());
+    // DEBUG(// PrintMem(sdd, 11));
+    DEBUG(b.Print());
 
-    delete[] x;
-    delete[] sdd;
+    DEBUG(delete[] x);
+    DEBUG(delete[] sdd);
 }
 void Test::_Disk() {
-    Disk a(1024);
-    size_t len = 200;
-    uint32_t x[len];
-    for (int i = 0; i < len; ++i) x[i] = (i + 1) << 8;
-    a.Write(200, (uint8_t*)x, sizeof(x));
-    a.Print(200, sizeof(x));
+    DEBUG(Disk a(1024));
+    DEBUG(size_t len = 200);
+    DEBUG(uint32_t x[len]);
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1) << 8);
+    DEBUG(a.Write(200, (uint8_t*)x, sizeof(x)));
+    DEBUG(a.Print(200, sizeof(x)));
 
-    uint32_t* ab = (uint32_t*)a.Read(200, sizeof(x));
+    DEBUG(uint32_t * ab = (uint32_t*)a.Read(200, sizeof(x)));
 
-    for (int i = 0; i < len; ++i) std::cout << ab[i] << std::endl;
+    DEBUG(for (int i = 0; i < len; ++i) std::cout << ab[i] << std::endl);
 
-    a.Free(200, sizeof(x));
-    a.Print(200, sizeof(x));
-    delete[] ab;
+    DEBUG(a.Free(200, sizeof(x)));
+    DEBUG(a.Print(200, sizeof(x)));
+    DEBUG(delete[] ab);
 }
 void Test::_Disk2() {
-    Disk a(1024);
-    size_t len = 200;
-    uint32_t x[len];
+    DEBUG(Disk a(1024));
+    DEBUG(size_t len = 200);
+    DEBUG(uint32_t x[len]);
 
-    for (int i = 0; i < len; ++i) x[i] = (i + 1) << 8;
-    a.Write(200, (uint8_t*)x, sizeof(x));
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1) << 8);
+    DEBUG(a.Write(200, (uint8_t*)x, sizeof(x)));
 
-    uint8_t* data = a.ExportData();
-    Disk b(data);
+    DEBUG(uint8_t * data = a.ExportData());
+    DEBUG(Disk b(data));
 
-    b.Print(200, sizeof(x));
-    uint32_t* ab = (uint32_t*)b.Read(200, sizeof(x));
-    for (int i = 0; i < len; ++i) std::cout << ab[i] << std::endl;
+    DEBUG(b.Print(200, sizeof(x)));
+    DEBUG(uint32_t * ab = (uint32_t*)b.Read(200, sizeof(x)));
+    DEBUG(for (int i = 0; i < len; ++i) std::cout << ab[i] << std::endl);
 
-    delete[] data;
+    DEBUG(delete[] data);
 }
 void Test::_Inode() {
 
-    Inode a(4, 1);
+    DEBUG(Inode a(4, 1));
 
-    a.AddPointer(5);
-    a.AddPointer(2);
-    a.AddPointer(3);
-    a.AddPointer(4);
-    a.AddPointer(4);
-    a.AddPointer(4);
-    a.RemovePointer();
-    a.AddPointer(5);
-    a.AddPointer(4);
-    a.AddPointer(4);
+    DEBUG(a.AddPointer(5));
+    DEBUG(a.AddPointer(2));
+    DEBUG(a.AddPointer(3));
+    DEBUG(a.AddPointer(4));
+    DEBUG(a.AddPointer(4));
+    DEBUG(a.AddPointer(4));
+    DEBUG(a.RemovePointer());
+    DEBUG(a.AddPointer(5));
+    DEBUG(a.AddPointer(4));
+    DEBUG(a.AddPointer(4));
 
-    a.RemovePointer();
-    a.RemovePointer();
+    DEBUG(a.RemovePointer());
+    DEBUG(a.RemovePointer());
 
-    uint8_t* data = a.ExportData();
+    DEBUG(uint8_t * data = a.ExportData());
 
-    Inode b(data);
+    DEBUG(Inode b(data));
 
-    b.Print();
-    a.Print();
+    DEBUG(b.Print());
+    DEBUG(a.Print());
 
-    delete[] data;
+    DEBUG(delete[] data);
 }
 void Test::_InodeTable() {
-    InodeTable table(5, "122");
+    DEBUG(InodeTable table(5, "122"));
 
-    uint8_t* data = table.ExportData();
-    InodeTable d(data);
-    d.Print();
+    DEBUG(uint8_t * data = table.ExportData());
+    DEBUG(InodeTable d(data));
+    DEBUG(d.Print());
 
-    delete[] data;
+    DEBUG(delete[] data);
 }
 void Test::_Path() {
 
 }
 void Test::_StorageManagement1() {
-    StorageManagement storage(4096, 512);
-    size_t len = 300;
-    uint32_t x[len];
+    DEBUG(StorageManagement storage(4096, 512));
+    DEBUG(size_t len = 300);
+    DEBUG(uint32_t x[len]);
 
     // PrintMem(storage.GetStorage(), storage.GetDiskSize());
-    for (int i = 0; i < len; ++i) x[i] = (i + 1);
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1));
 
-    uint32_t chunk = storage.WriteS((uint8_t*)x, sizeof(x));
-    uint32_t* rest = (uint32_t*)storage.ReadS(chunk);
+    DEBUG(uint32_t chunk = storage.WriteS((uint8_t*)x, sizeof(x)));
+    DEBUG(uint32_t * rest = (uint32_t*)storage.ReadS(chunk));
 
     for (int i = 0; i < storage.SizeS(chunk) / 4; ++i) {
         if (rest[i] == x[i]) continue;
@@ -130,59 +130,139 @@ void Test::_StorageManagement2() {
     uint32_t x[len];
 
     // PrintMem(storage.GetStorage(), storage.GetDiskSize());
-    for (int i = 0; i < len; ++i) x[i] = (i + 1);
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1));
 
-    std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x));
-    uint32_t* rest = (uint32_t*)storage.ReadM(chunk);
+    DEBUG(std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x)));
+    DEBUG(uint32_t * rest = (uint32_t*)storage.ReadM(chunk));
 
-    for (int i = 0; i < storage.SizeM(chunk) / 4; ++i) {
+    DEBUG(for (int i = 0; i < storage.SizeM(chunk) / 4; ++i)) {
         // if (rest[i] == x[i]) continue;
-        std::cout << rest[i] << " ";
+        DEBUG(std::cout << rest[i] << " ");
     }
     // storage.GetBitmap().Print();
 
-    storage.PrintM(chunk);
-    storage.GetBitmap().Print();
+    DEBUG(storage.PrintM(chunk));
+    DEBUG(storage.GetBitmap().Print());
 
-    storage.FreeM(chunk);
-    storage.GetBitmap().Print();
-    storage.PrintM(chunk);
+    DEBUG(storage.FreeM(chunk));
+    DEBUG(storage.GetBitmap().Print());
+    DEBUG(storage.PrintM(chunk));
 
-    delete[] rest;
+    DEBUG(delete[] rest);
 }
 void Test::_StorageManagement3() {
-    StorageManagement storage(2048, 256);
-    size_t len = 100;
-    uint32_t x[len];
+    DEBUG(StorageManagement storage(2048, 256));
+    DEBUG(size_t len = 100);
+    DEBUG(uint32_t x[len]);
 
     // PrintMem(storage.GetStorage(), storage.GetDiskSize());
-    for (int i = 0; i < len; ++i) x[i] = (i + 1);
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1));
 
-    std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x));
+    DEBUG(std::vector<uint32_t> chunk = storage.WriteM((uint8_t*)x, sizeof(x)));
 
-    uint8_t* data = storage.ExportData();
-    StorageManagement b(data);
-    b.PrintM(chunk);
+    DEBUG(uint8_t * data = storage.ExportData());
+    DEBUG(StorageManagement b(data));
+    DEBUG(b.PrintM(chunk));
 
-    uint32_t* rest = (uint32_t*)b.ReadM(chunk);
-    std::cout << std::endl;
-    for (int i = 0; i < b.SizeM(chunk) / 4; ++i) {
+    DEBUG(uint32_t * rest = (uint32_t*)b.ReadM(chunk));
+    DEBUG(std::cout << std::endl);
+    DEBUG(for (int i = 0; i < b.SizeM(chunk) / 4; ++i)) {
+        // if (rest[i] == x[i]) continue;
+        DEBUG(std::cout << rest[i] << " ");
+    }
+
+    DEBUG(delete[] data);
+    DEBUG(delete[] rest);
+}
+void Test::_StorageManagement3(StorageManagement& a) {
+    DEBUG(a.PrintS());
+    DEBUG(size_t len = 100);
+    DEBUG(uint32_t x[len]);
+
+    // DEBUG(// PrintMem(storage.GetStorage(), storage.GetDiskSize()));
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1));
+
+    DEBUG(std::vector<uint32_t> chunk = a.WriteM((uint8_t*)x, sizeof(x)));
+
+
+    DEBUG(uint32_t * rest = (uint32_t*)a.ReadM(chunk));
+
+    DEBUG(for (int i = 0; i < a.SizeM(chunk) / 4; ++i)) {
+        // if (rest[i] == x[i]) continue;
+        DEBUG(std::cout << rest[i] << " ");
+    }
+    // a.GetBitmap().Print();
+
+    DEBUG(a.PrintM(chunk));
+    DEBUG(a.GetBitmap().Print());
+
+    DEBUG(a.FreeM(chunk));
+    DEBUG(a.GetBitmap().Print());
+    DEBUG(a.PrintM(chunk));
+
+    DEBUG(uint8_t * data = a.ExportData());
+    DEBUG(StorageManagement b(data));
+    DEBUG(b.PrintM(chunk));
+
+    DEBUG(rest = (uint32_t*)b.ReadM(chunk));
+    DEBUG(std::cout << std::endl);
+    DEBUG(for (int i = 0; i < b.SizeM(chunk) / 4; ++i)) {
+        // if (rest[i] == x[i]) continue;
+        DEBUG(std::cout << rest[i] << " ");
+    }
+
+    DEBUG(delete[] data);
+    DEBUG(delete[] rest);
+}
+void Test::_StorageManagement3(StorageManagement*& a) {
+    DEBUG(a->PrintS());
+    DEBUG(size_t len = 100);
+    DEBUG(uint32_t x[len]);
+
+    // PrintMem(storage->GetStorage(), storage->GetDiskSize());
+    DEBUG(for (int i = 0; i < len; ++i) x[i] = (i + 1));
+
+    DEBUG(std::vector<uint32_t> chunk = a->WriteM((uint8_t*)x, sizeof(x)));
+
+
+    DEBUG(uint32_t * rest = (uint32_t*)a->ReadM(chunk));
+
+    DEBUG(for (int i = 0; i < a->SizeM(chunk) / 4; ++i)) {
         // if (rest[i] == x[i]) continue;
         std::cout << rest[i] << " ";
     }
+    // a->GetBitmap()->Print();
 
-    delete[] data;
-    delete[] rest;
+    DEBUG(a->PrintM(chunk));
+    DEBUG(a->GetBitmap().Print());
+
+    DEBUG(a->FreeM(chunk));
+    DEBUG(a->GetBitmap().Print());
+    DEBUG(a->PrintM(chunk));
+
+    // DEBUG(uint8_t * data = a->ExportData());
+    // DEBUG(StorageManagement b(data));
+    // DEBUG(b.PrintM(chunk));
+
+    // DEBUG(rest = (uint32_t*)a.ReadM(chunk));
+    // DEBUG(std::cout << std::endl);
+    // DEBUG(for (int i = 0; i < a.SizeM(chunk) / 4; ++i)) {
+    //     // if (rest[i] == x[i]) continue;
+    //     DEBUG(std::cout << rest[i] << " ");
+    // }
+
+    // // DEBUG(delete[] data);
+    // DEBUG(delete[] rest);
 }
 void Test::_Super() {
-    Super s(1024, 128, 156);
-    s.Print();
+    DEBUG(Super s(1024, 128, 156));
+    DEBUG(s.Print());
 
-    uint8_t* dat = s.ExportData();
-    Super a(dat);
-    a.Print();
+    DEBUG(uint8_t * dat = s.ExportData());
+    DEBUG(Super a(dat));
+    DEBUG(a.Print());
 
-    delete[] dat;
+    DEBUG(delete[] dat);
 }
 void Test::_Utils() {
 

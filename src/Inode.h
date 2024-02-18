@@ -7,6 +7,8 @@
 #include <iostream>
 #include <cstring>
 
+#include "Utils.h"
+
 struct InodeTable {
     static size_t GetExportSize();
 
