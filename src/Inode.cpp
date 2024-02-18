@@ -60,9 +60,10 @@ void Inode::Print() const {
 uint8_t* Inode::ExportData() const { DEBUG(return ExportData(new uint8_t[72])); }
 uint8_t* Inode::ExportData(uint8_t _dst[72]) const {
     DEBUG(size_t offset = 0);
+
     DEBUG(memcpy(_dst, &this->id, sizeof(this->id)));
     DEBUG(offset += sizeof(this->id));
-    DEBUG(std::cout << this->type << std::endl);
+
     DEBUG(memcpy(_dst + offset, &this->type, sizeof(this->type)));
     DEBUG(offset += sizeof(this->type));
 

@@ -28,14 +28,13 @@ struct InodeTable {
 // 64
 class Inode {
 private:
-    const static size_t InodeBlockSize;
-    const static uint32_t defaultEmptyPointer;
-
     uint32_t id, type;
     size_t size, link;
     std::vector<uint32_t> blocks;
 
 public:
+    const static size_t InodeBlockSize;
+    const static uint32_t defaultEmptyPointer;
     const static uint32_t DIRECTORY;
     const static uint32_t FILE;
     static size_t GetExportSize();

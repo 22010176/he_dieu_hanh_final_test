@@ -82,10 +82,9 @@ void Test::_Inode() {
 
     DEBUG(a.RemovePointer());
     DEBUG(a.RemovePointer());
+    DEBUG(uint8_t data[Inode::GetExportSize()]);
 
-    DEBUG(uint8_t * data = a.ExportData());
-
-    DEBUG(Inode b(data));
+    DEBUG(Inode b(a.ExportData(data)));
 
     DEBUG(b.Print());
     DEBUG(a.Print());

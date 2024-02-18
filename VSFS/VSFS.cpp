@@ -19,10 +19,13 @@ VSFS::VSFS(uint8_t data[24]) {
     DEBUG(this->chunkSize = temp[2]);
 
     DEBUG(SetupParameter());
-
     DEBUG(InitFileSystem());
 }
-VSFS::~VSFS() { DEBUG(delete[] disk); }
+VSFS::~VSFS() {
+    DEBUG(delete inodeData);
+    DEBUG(delete dataData);
+    DEBUG(delete[] disk);
+}
 
 void VSFS::SetupParameter() {
     DEBUG(if (inodeNum * sizeof(Inode) > diskSize)) {
@@ -35,7 +38,7 @@ void VSFS::SetupParameter() {
     }
 
     DEBUG(size_t inodeChunkNum =
-        CalcSize(inodeNum * sizeof(Inode), chunkSize) +
+        CalcSize(inodeNum * Inode::GetExportSize(), chunkSize) +
         CalcSize(CalcSize(inodeNum, 8), chunkSize));
 
     DEBUG(size_t totalNotDataChunk = 1 + inodeChunkNum);
@@ -48,41 +51,79 @@ void VSFS::SetupParameter() {
     }
 
     DEBUG(this->disk = new uint8_t[diskSize]);
-    DEBUG(this->indoes = new StorageManagement(disk + chunkSize, inodeChunkNum * chunkSize, sizeof(Inode) + 4));
-    DEBUG(this->datas = new StorageManagement(disk + dataOffset, diskSize - dataOffset, chunkSize));
+    DEBUG(this->inodeData = new StorageManagement(disk + chunkSize, inodeChunkNum * chunkSize, sizeof(Inode) + 4));
+    DEBUG(this->dataData = new StorageManagement(disk + dataOffset, diskSize - dataOffset, chunkSize));
 
-    Test::_StorageManagement3(this->indoes);
-    Test::_StorageManagement3(this->datas);
+    Test::_StorageManagement3(this->inodeData);
+    Test::_StorageManagement3(this->dataData);
 }
 
-StorageManagement* VSFS::GetInodes() const { DEBUG(return indoes); }
-StorageManagement* VSFS::GetDatas() const { DEBUG(return datas); }
+StorageManagement* VSFS::GetInodes() const { DEBUG(return inodeData); }
+StorageManagement* VSFS::GetDatas() const { DEBUG(return dataData); }
 
 size_t VSFS::GetDiskSize() const { DEBUG(return this->diskSize); }
 size_t VSFS::GetInodeNumber() const { DEBUG(return this->inodeNum); }
 size_t VSFS::GetChunkSize() const { DEBUG(return this->chunkSize); }
 
+bool VSFS::LinkingFolder(Inode* inode, InodeTable table) {
+    DEBUG(if (table.id == inode->GetId())) {
+        inode->SetLink(inode->GetLink() + 1);
+        uint8_t res[InodeTable::GetExportSize()]; table.ExportData(res);
+        UpdateInodeData(inode, res, InodeTable::GetExportSize());
+        return true;
+    }
+
+
+    DEBUG(if (inodeData->GetBitmap().CheckCell(table.id) == 0) return false);
+    DEBUG(uint8_t data[Inode::GetExportSize()]);
+    // Update the _dst folder
+    DEBUG(Inode _dst = Inode(inodeData->CopyS(data, table.id)));
+    DEBUG(_dst.SetLink(_dst.GetLink() + 1));
+
+    DEBUG(_dst.ExportData(data));
+    DEBUG(inodeData->WriteS(table.id, data, Inode::GetExportSize()));
+    inode->SetLink(inode->GetLink() + 1);
+    // Update the inode table for src Inode
+    // DEBUG(uint8_t _ta[InodeTable::GetExportSize()]);
+    // DEBUG(table.ExportData(_ta));
+    // DEBUG(UpdateInodeData(inode, _ta, table.GetExportSize()));
+    // DEBUG(return true);
+    return true;
+}
+bool VSFS::LinkingFolder(Inode* inode, uint32_t inodeId, const std::string& name) { DEBUG(return LinkingFolder(inode, InodeTable(inodeId, name))); }
+Inode VSFS::CreateFolder(uint32_t type) { return Inode(this->inodeData->GetBitmap().GetFreeCell(), type); }
+void VSFS::UpdateInodeData(Inode* inode, uint8_t* data, size_t size) {
+    DEBUG(uint8_t freePointer = inode->FindFreePointer());
+    if (freePointer == Inode::defaultEmptyPointer) return;
+    size_t writedSize = 0;
+    DEBUG(if (freePointer > 0)) {
+        DEBUG(writedSize = dataData->UpdateS(inode->GetBlocks()[freePointer - 1], data, size));
+        DEBUG(if (writedSize == size) return inode->SetSize(inode->GetSize() + size));
+    }
+
+    DEBUG(std::vector<uint32_t> chunks = dataData->WriteM(data + writedSize, size - writedSize));
+    DEBUG(for (uint32_t chunk : chunks) inode->AddPointer(chunk));
+    DEBUG(inode->SetSize(inode->GetSize() + size));
+}
+
 void VSFS::InitFileSystem() {
-    // DEBUG(Inode inode(indoes.GetBitmap().GetFreeCell(), Inode::DIRECTORY));
-    // DEBUG(rootInode = inode.GetId());
+    DEBUG(Inode inode = CreateFolder(Inode::DIRECTORY));
+    DEBUG(rootInode = inode.GetId());
 
-    // DEBUG(inode.SetLink(4));
-    // DEBUG(inode.SetSize(InodeTable::GetExportSize() * 2));
+    InodeTable tables[]{ InodeTable(rootInode,"."),InodeTable(rootInode,".."),InodeTable(rootInode,""),InodeTable(rootInode,"root") };
+    DEBUG(for (InodeTable table : tables) LinkingFolder(&inode, table));
 
-    // DEBUG(InodeTable table[]) { {rootInode, "."}, { rootInode,".." }, { rootInode,"" }, { rootInode,"root" } }
+    DEBUG(uint8_t data[Inode::GetExportSize()]);
+    DEBUG(inodeData->WriteS(rootInode, inode.ExportData(data), Inode::GetExportSize()));
+    DEBUG(inodeData->PrintS(rootInode));
+    // DEBUG(Inode(data).Print());
+    DEBUG(PrintInodeFromDisk(rootInode));
+    // DEBUG(inode.Print());
+}
 
-    // DEBUG(uint8_t tables[InodeTable::GetExportSize() * 4]);
-    // DEBUG(for (int i = 0; i < 4; ++i)) {
-    //     DEBUG(table[i].ExportData(tables + i * InodeTable::GetExportSize()));
-    // }
+void VSFS::PrintInodeFromDisk(uint32_t inodeId) const {
+    DEBUG(uint8_t temp[Inode::GetExportSize()]);
+    DEBUG(Inode inode(inodeData->CopyS(temp, inodeId)));
 
-    // DEBUG(std::vector<uint32_t> chunks = datas.WriteM(tables, sizeof(tables)));
-    // DEBUG(for (uint32_t c : chunks) inode.AddPointer(c));
-
-    // DEBUG(uint8_t result[Inode::GetExportSize()]);
-
-    // DEBUG(uint32_t inodeI = indoes.WriteS(rootInode, inode.ExportData(result), sizeof(result)));
-
-    // DEBUG(indoes.PrintS(inodeI));
-    // DEBUG(datas.PrintM(chunks));
+    DEBUG(inode.Print());
 }

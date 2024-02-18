@@ -25,7 +25,7 @@ public:
     StorageManagement(uint8_t* storage, size_t diskSize, size_t chunkSize);
     ~StorageManagement();
 
-    StorageManagement& operator=(const StorageManagement& _src);
+    // StorageManagement& operator=(const StorageManagement& _src);
 
     size_t GetChunkNumber() const;
     size_t GetChunkSize() const;

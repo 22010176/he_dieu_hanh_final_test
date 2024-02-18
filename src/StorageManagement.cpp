@@ -18,17 +18,17 @@ StorageManagement::StorageManagement(uint8_t* storage, size_t diskSize, size_t c
 }
 StorageManagement::~StorageManagement() {}
 
-StorageManagement& StorageManagement::operator=(const StorageManagement& _src) {
-    DEBUG(std::cout << "WTFfff \n");
+// StorageManagement& StorageManagement::operator=(const StorageManagement& _src) {
+//     DEBUG(std::cout << "WTFfff \n");
 
-    // GetStorage() = _src.GetStorage();
-    // GetDiskSize() = _src.GetDiskSize();
-    // DEBUG(SetDiskSize(_src.GetDiskSize()));
-    // DEBUG(SetStorage(_src.GetStorage()));
-    DEBUG(SetupParameter(GetDiskSize(), GetChunkSize()));
+//     // GetStorage() = _src.GetStorage();
+//     // GetDiskSize() = _src.GetDiskSize();
+//     // DEBUG(SetDiskSize(_src.GetDiskSize()));
+//     // DEBUG(SetStorage(_src.GetStorage()));
+//     DEBUG(SetupParameter(GetDiskSize(), GetChunkSize()));
 
-    DEBUG(return *this);
-}
+//     DEBUG(return *this);
+// }
 
 size_t StorageManagement::GetChunkNumber() const { return len; }
 size_t StorageManagement::GetChunkSize() const { return chunkSize; }
