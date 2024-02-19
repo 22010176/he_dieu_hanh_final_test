@@ -55,8 +55,8 @@ void PrintFileStructure(int inodeNumber, int level);
 
 v_mkdir
     Create folder at destination
-        1. Check if parent exists           a
-        2. Check if the path is existed.    b
+        1. Check if parent isnt exists          a
+        2. Check if the path is existed.        b
         3. a or b true => Throw error
 
         4. if a or b false
@@ -68,7 +68,7 @@ v_mkdir
 
 v_open
     Create file at destination
-        1. Check if parent exists           a
+        1. Check if parent isnt exists      a
         2. Check if the path is existed.    b
         3. a or b true => Throw error
 
