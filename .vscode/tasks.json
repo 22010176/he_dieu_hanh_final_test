@@ -3,17 +3,17 @@
         {
             "type": "cppbuild",
             "label": "C/C++: gcc.exe build active file",
-            "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
+            "command": "gcc",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
                 "${workspaceFolder}\\utils.c",
                 "${workspaceFolder}\\vsfs.c",
                 "-o",
-                "${fileDirname}\\out\\${fileBasenameNoExtension}.exe"
+                "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"

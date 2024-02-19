@@ -5,6 +5,9 @@
 
 #include "utils.h"
 
+// gcc *.c -o out/vsfs.exe
+// ./out/vsfs
+
 #define class(x)        typedef struct x x; struct x
 #define max(a, b)       a > b ? a : b
 #define min(a, b)       a < b ? a : b
