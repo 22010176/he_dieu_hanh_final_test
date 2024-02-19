@@ -3,7 +3,7 @@
 
 char* data; // 4kb
 
-size_t chunkSize = 1024 * 4;
+size_t chunkSize = 512;
 size_t diskSize = 256 * 1024;
 size_t inodeSize = sizeof(Inode);
 size_t inodeTableSize = sizeof(InodeTable);
@@ -19,6 +19,14 @@ Inode* inodeChunk;
 int rootInode;
 
 Super vss[32];
+
+void InitParam() {
+    data = malloc(diskSize);
+}
+void InitFolder() {
+
+}
+
 
 // int main() {
 

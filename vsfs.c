@@ -11,7 +11,7 @@
 
 char* data; // 4kb
 
-size_t chunkSize = 1024 * 4;
+size_t chunkSize = 1024;
 size_t diskSize = 256 * 1024;
 size_t inodeSize = sizeof(Inode);
 size_t inodeTableSize = sizeof(InodeTable);
@@ -37,27 +37,102 @@ char* ReadInode(char* _dst, Inode* inode);
 int GetFreePointer(Inode* inode);
 void PrintInode(int inodeNum);
 void UpdateInode(Inode* inode);
-
 void PrintInode2(Inode* inode);
 int UpdateInodeData(Inode* inode, char* data, size_t size);
-void AddLinking(Inode* inode, InodeTable table);
+void AddLinkToInode(Inode* inode, InodeTable table);
 int IsThisFileInFolder(Inode* inode, char* path, int type);
 
 void v_mkdir(char* path);
-
 void v_link(char* _dst, char* _src);
 void v_unlink(char* dst);
-
 void v_open(char* path);
 void v_write(char* path, char* content, size_t size);
 
 void PrintFileStructure(int inodeNumber, int level);
 
+
+/* TEST LIST
+
+v_mkdir
+    Create folder at destination
+        1. Check if parent exists           a
+        2. Check if the path is existed.    b
+        3. a or b true => Throw error
+
+        4. if a or b false
+            Create child Inode (check bitmap if the bit is correct set and file type PrintInode2())
+            Link with Parent folder. (check the inode tables) Use ReadInode();
+
+        5. Update it to the disk
+            Use PrintInode(inodeID) to check.
+
+v_open
+    Create file at destination
+        1. Check if parent exists           a
+        2. Check if the path is existed.    b
+        3. a or b true => Throw error
+
+        4. if a or b false
+            Create child Inode (check bitmap if the bit is correct set and file type PrintInode2())
+            Link with Parent folder. (check the inode tables) Use ReadInode();
+
+        5. Update it to the disk
+            Use PrintInode(inodeID) to check.
+
+v_link
+    Linking source path to destinate path
+        1. Check if source path is exists.                          a
+        2. Check if parent folder of destinate path is existed.     b
+        3. a or b true => Throw error
+
+        4. false
+            Link the source path to destinate path. (Check the inodeTable of destinate inode);
+
+v_unlink
+    Remove item in path
+        1. Check if item exists
+        2. false -> throw error
+
+        3. true -> FILE: check if it is file or not
+            Is file: Remove it from parent inodeTable (Check Inode Table again)
+
+        4. false -> DIRECTORY: Check if folder is empty
+            True:       remove it like file
+            False:      throw error
+
+v_write
+    Write Content to the inode table
+        1. Check path like usuals
+        2. Write content (Use Print Data and check if data is corrected write)
+            Check blocks if it is correctly set.
+            Check size if it is the same with data's size
+            Check if the data in disk is the same as the the write data (can try write string to easier debug)
+
+* Delete folder isnt empty (denied); Use PrintFileStructure to test
+* Delete folder completely; Check inode bitmap, data bitmap. Use _Print to see that bit set to 0
+    eg:
+    there are 80 inodes -> bitmap:
+    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+    Inode 0 is set =>
+    0100 0000 0000 0000 0000 0000 0000 0000 0000 0000
+    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+
+    So if we delete it, it need to be 0
+
+* Create file, write content to it. Focus on large content that require multiple block to stored.
+    Check if data is preserved.
+    Check if file run out of pointers, will it return error log.
+
+* Check if link work, try to link it to multiples destination and print the folder structures;
+
+*/
 int main() {
     InitParam();
     InitFolder();
 
 
+    // create some directories
     v_mkdir("a");
     v_mkdir("C");
     v_mkdir("/ab/");
@@ -67,15 +142,30 @@ int main() {
     v_mkdir("ab/e/f/h");
     v_mkdir("ab/e/g");
     v_mkdir("ab/f");
+
+    // Can understand that it is just copy folder
     v_link("/ab/ed", "a");
     v_link("ab/e/eh", "ab/d");
+
+    // Create some more directory
     v_mkdir("b");
+    v_mkdir("bdd");
+    v_mkdir("bddd");
+    v_mkdir("bddd");
+
+    // Create File
+    v_open("a.txt");
     v_open("b/bee");
+
+    // Write to file some content
     v_write("b/bee", "Asdfasdf", 9);
+
+    // Remove or delete item
     v_unlink("ab/d/");
     v_unlink("a");
     v_unlink("C");
 
+    // Print folder structure
     PrintFileStructure(rootInode, 0);
 
     _Print(inodeBitmapChunk, numberInode / 8);
@@ -127,10 +217,10 @@ void InitParam() {
 void InitFolder() {
     Inode root = CreateInode(_DIRECTORY);
     rootInode = root.id;
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = ".." });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "." });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "root" });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "" });
+    AddLinkToInode(&root, (InodeTable) { .id = rootInode, .name = ".." });
+    AddLinkToInode(&root, (InodeTable) { .id = rootInode, .name = "." });
+    AddLinkToInode(&root, (InodeTable) { .id = rootInode, .name = "root" });
+    AddLinkToInode(&root, (InodeTable) { .id = rootInode, .name = "" });
 
     UpdateInode(&root);
 }
@@ -234,7 +324,7 @@ int UpdateInodeData(Inode* inode, char* data, size_t size) {
     }
     return SUCCESS;
 }
-void AddLinking(Inode* inode, InodeTable table) {
+void AddLinkToInode(Inode* inode, InodeTable table) {
     if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
         printf("Inode doesnt exist!!!\n");
         return;
@@ -247,7 +337,6 @@ void AddLinking(Inode* inode, InodeTable table) {
     }
     if (inode->id == table.id) ++inode->link;
     else ++inodeChunk[table.id].link;
-    // PrintInode(table.id);
 }
 
 int IsThisFileInFolder(Inode* inode, char* path, int type) {
@@ -287,11 +376,11 @@ void v_mkdir(char* path) {
     Inode child = CreateInode(_DIRECTORY), parent = inodeChunk[inodeParentID];
     InodeTable childTable; childTable.id = child.id; strcpy(childTable.name, fileName);
 
-    AddLinking(&child, (InodeTable) { .id = parent.id, .name = ".." });
-    AddLinking(&child, (InodeTable) { .id = child.id, .name = "." });
+    AddLinkToInode(&child, (InodeTable) { .id = parent.id, .name = ".." });
+    AddLinkToInode(&child, (InodeTable) { .id = child.id, .name = "." });
     UpdateInode(&child);
 
-    AddLinking(&parent, childTable);
+    AddLinkToInode(&parent, childTable);
     UpdateInode(&parent);
 
     FreeMem(splitStr);
@@ -314,7 +403,7 @@ void v_link(char* _dst, char* _src) {
     InodeTable table = { .id = srcInode,.name = "" };
     strcpy(table.name, dstName);
 
-    AddLinking(&inodeChunk[dstInode], table);
+    AddLinkToInode(&inodeChunk[dstInode], table);
 
     FreeMem(dstSplit);
     FreeMem(srcSplit);
@@ -338,9 +427,13 @@ void v_unlink(char* dst) {
     }
 
     Inode inode = inodeChunk[parentNumber];
-
     int len = CalcSize(inode.size, inodeTableSize);
+    if (inode.type == _DIRECTORY && len > 2) {
+        printf("There are item inside directory, cant not remove!\n");
+        return;
+    }
     InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[parentNumber]);
+
     for (int i = 0, j = 0; i < len - 1;i++) {
         if (tables[i].id == dstNumber) j = 1;
         if (j == 0) continue;
@@ -381,10 +474,8 @@ void v_open(char* path) {
 
     UpdateInode(&child);
 
-    AddLinking(&parent, childTable);
+    AddLinkToInode(&parent, childTable);
     UpdateInode(&parent);
-
-    // PrintFileStructure(inodeParentID, 0);
 
     FreeMem(splitStr);
     free(fileName);
@@ -417,10 +508,10 @@ void PrintFileStructure(int inodeNumber, int level) {
 
         if (inode.type == _DIRECTORY) PrintFileStructure(tables[i].id, level + 1);
         else {
-            if (inode.size == 0) continue;
-            char data[inode.size]; ReadInode(data, &inode);
-            _Print(data, inode.size);
-            puts(data);
+            // if (inode.size == 0) continue;
+            // char data[inode.size]; ReadInode(data, &inode);
+            // _Print(data, inode.size);
+            // puts(data);
         }
     }
 }

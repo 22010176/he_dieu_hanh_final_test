@@ -13,6 +13,7 @@
         "valarray": "c",
         "utils.h": "c",
         "thread": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "random": "c"
     }
 }

@@ -13,8 +13,6 @@ void* _re(void* p, size_t size) {
     return o;
 }
 
-
-
 char** SplitString(char* string, char* p) {
     int count = 4, k = 0, len = strlen(string);
 
