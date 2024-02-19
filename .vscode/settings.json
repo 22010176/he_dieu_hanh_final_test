@@ -12,6 +12,7 @@
         "regex": "c",
         "valarray": "c",
         "utils.h": "c",
-        "thread": "c"
+        "thread": "c",
+        "types.h": "c"
     }
 }

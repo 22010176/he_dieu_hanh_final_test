@@ -4,31 +4,10 @@
 #include <math.h>
 
 #include "utils.h"
+#include "types.h"
 
 // gcc *.c -o out/vsfs.exe
 // ./out/vsfs
-
-#define class(x)        typedef struct x x; struct x
-#define max(a, b)       a > b ? a : b
-#define min(a, b)       a < b ? a : b
-#define CalcSize(a, b)  (size_t)ceil((double)a / b)
-#define FreeMem(p)      for (int i = 0; p[i] != NULL; ++i) free(p[i]); free(p)
-
-#define _FILE            2
-#define _DIRECTORY       1
-#define _ANYTYPE         3
-
-#define SUCCESS          2
-#define FULL             1
-#define EMPTY           -1
-#define FAIL            -1
-
-#define MaxPointers     12
-
-
-class (Inode) { int id, type, link, size, blocks[MaxPointers]; };
-class (InodeTable) { int id; char name[28]; };
-
 
 char* data; // 4kb
 
@@ -114,8 +93,6 @@ int CheckCell(char* bitmapChunk, int size, int cell) {
     return ReadBit(bitmapChunk[cell / 8], cell % 8);
 }
 int GetFreeCell(char* bitmapChunk, int size) {
-    // _physic address = MapAddress(GetChunkAddress(bm.chunk));
-
     int len = CalcSize(size, 8);
     for (int i = 0; i < len; ++i) {
         for (int j = 0; j < 8; ++j) {
@@ -126,12 +103,6 @@ int GetFreeCell(char* bitmapChunk, int size) {
     }
 
     return FAIL;
-    // for (int i = 0; i < size; i++) {
-    //     if (bitmapChunk[i] != 0) continue;
-    //     bitmapChunk[i] = FULL;
-    //     return i;
-    // }
-    // return FAIL;
 }
 int FreeCell(char* bitmapChunk, int size, int cell) {
     if (cell >= size) {
@@ -142,9 +113,6 @@ int FreeCell(char* bitmapChunk, int size, int cell) {
     bitmapChunk[cell / 8] -= 1 << (cell % 8);
 
     return SUCCESS;
-    // if (cell < size) return bitmapChunk[cell] = 0;
-    // printf("Invalid Cell number.\n");
-    // return FAIL;
 }
 void InitParam() {
     data = _ca(diskSize);
@@ -363,7 +331,11 @@ void v_unlink(char* dst) {
         return;
     }
 
-    if (--inodeChunk[dstNumber].link == 1) FreeCell(inodeBitmapChunk, numberInode, dstNumber);
+    if (--inodeChunk[dstNumber].link == 1) {
+        Inode inode = inodeChunk[dstNumber];
+        for (int i = 0; inode.blocks[i] != EMPTY; ++i) FreeCell(dataBitmapChunk, numberChunk, inode.blocks[i]);
+        FreeCell(inodeBitmapChunk, numberInode, dstNumber);
+    }
 
     Inode inode = inodeChunk[parentNumber];
 
