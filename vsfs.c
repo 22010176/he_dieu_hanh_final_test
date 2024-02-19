@@ -35,7 +35,7 @@ void InitFolder();
 Inode CreateInode(int type);
 char* ReadInode(char* _dst, Inode* inode);
 int GetFreePointer(Inode* inode);
-void PrintInode(int inodeNum);
+void PrintInodeInDisk(int inodeNum);
 void UpdateInode(Inode* inode);
 void PrintInode2(Inode* inode);
 int UpdateInodeData(Inode* inode, char* data, size_t size);
@@ -236,7 +236,7 @@ char* ReadInode(char* _dst, Inode* inode) {
     }
     return _dst;
 }
-void PrintInode(int inodeNum) {
+void PrintInodeInDisk(int inodeNum) {
     printf("\n\n");
     if (CheckCell(inodeBitmapChunk, numberInode, inodeNum) == 0) return;
 
