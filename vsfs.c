@@ -44,18 +44,104 @@ Inode* inodeChunk;
 
 int rootInode;
 
-int GetFreeCell(char* bitmapChunk, int size) {
-    for (int i = 0; i < size; i++) {
-        if (bitmapChunk[i] != 0) continue;
-        bitmapChunk[i] = FULL;
-        return i;
+int GetFreeCell(char* bitmapChunk, int size);
+int FreeCell(char* bitmapChunk, int size, int cell);
+
+void InitParam();
+void InitFolder();
+
+Inode CreateInode(int type);
+char* ReadInode(char* _dst, Inode* inode);
+int GetFreePointer(Inode* inode);
+void PrintInode(int inodeNum);
+void UpdateInode(Inode* inode);
+
+void PrintInode2(Inode* inode);
+int UpdateInodeData(Inode* inode, char* data, size_t size);
+void AddLinking(Inode* inode, InodeTable table);
+int IsThisFileInFolder(Inode* inode, char* path, int type);
+
+void v_mkdir(char* path);
+
+void v_link(char* _dst, char* _src);
+void v_unlink(char* dst);
+
+void v_open(char* path);
+void v_write(char* path, char* content, size_t size);
+
+void PrintFileStructure(int inodeNumber, int level);
+
+int main() {
+    InitParam();
+    InitFolder();
+
+
+    v_mkdir("a");
+    v_mkdir("C");
+    v_mkdir("/ab/");
+    v_mkdir("/ab/d");
+    v_mkdir("ab/e/");
+    v_mkdir("ab/e/f");
+    v_mkdir("ab/e/g");
+    v_mkdir("ab/f");
+    v_link("/ab/ed", "a");
+    v_link("ab/e/eh", "ab/d");
+    v_mkdir("b");
+    v_open("b/bee");
+    v_write("b/bee", "Asdfasdf", 9);
+    v_unlink("ab/d/");
+    v_unlink("a");
+    v_unlink("C");
+
+    PrintFileStructure(rootInode, 0);
+    printf("%d %d\n", numberChunk, numberInode);
+
+    _Print(inodeBitmapChunk, numberInode / 8);
+    _Print(dataBitmapChunk, numberChunk / 8);
+
+    free(data);
+    return 0;
+}
+
+int CheckCell(char* bitmapChunk, int size, int cell) {
+    if (cell >= size) {
+        printf("Invalid Cell number.\n");
+        return FAIL;
     }
+    return ReadBit(bitmapChunk[cell / 8], cell % 8);
+}
+int GetFreeCell(char* bitmapChunk, int size) {
+    // _physic address = MapAddress(GetChunkAddress(bm.chunk));
+
+    int len = CalcSize(size, 8);
+    for (int i = 0; i < len; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            if (ReadBit(bitmapChunk[i], j)) continue;                                // If address is 1, continue
+            bitmapChunk[i] |= (1 << j);                                                     // Write to Bitmap
+            return i * 8 + j;
+        }
+    }
+
     return FAIL;
+    // for (int i = 0; i < size; i++) {
+    //     if (bitmapChunk[i] != 0) continue;
+    //     bitmapChunk[i] = FULL;
+    //     return i;
+    // }
+    // return FAIL;
 }
 int FreeCell(char* bitmapChunk, int size, int cell) {
-    if (cell < size) return bitmapChunk[cell] = 0;
-    printf("Invalid Cell number.\n");
-    return FAIL;
+    if (cell >= size) {
+        printf("Invalid Cell number.\n");
+        return FAIL;
+    }
+    if (ReadBit(bitmapChunk[cell / 8], cell % 8) == 0) return SUCCESS;
+    bitmapChunk[cell / 8] -= 1 << (cell % 8);
+
+    return SUCCESS;
+    // if (cell < size) return bitmapChunk[cell] = 0;
+    // printf("Invalid Cell number.\n");
+    // return FAIL;
 }
 void InitParam() {
     data = _ca(diskSize);
@@ -64,8 +150,18 @@ void InitParam() {
     dataBitmapChunk = data + 2 * chunkSize;
     inodeChunk = (Inode*)(data + 3 * chunkSize);
     dataChunk = data + 8 * chunkSize;
-    numberInode = CalcSize(inodeSize, 5 * chunkSize);
+    numberInode = CalcSize(5 * chunkSize, inodeSize);
     numberChunk = CalcSize(diskSize, chunkSize) - 8;
+}
+void InitFolder() {
+    Inode root = CreateInode(_DIRECTORY);
+    rootInode = root.id;
+    AddLinking(&root, (InodeTable) { .id = rootInode, .name = ".." });
+    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "." });
+    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "root" });
+    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "" });
+
+    UpdateInode(&root);
 }
 int GetFreePointer(Inode* inode) {
     for (int i = 0; i < MaxPointers; ++i) if (inode->blocks[i] == EMPTY) return i;
@@ -81,7 +177,7 @@ char* ReadInode(char* _dst, Inode* inode) {
 }
 void PrintInode(int inodeNum) {
     printf("\n\n");
-    if (inodeBitmapChunk[inodeNum] == 0) return;
+    if (CheckCell(inodeBitmapChunk, numberInode, inodeNum) == 0) return;
 
     Inode inode = inodeChunk[inodeNum];
     printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode.id, inode.type == _FILE ? "File" : "Directory", inode.link, inode.size);
@@ -96,7 +192,7 @@ void PrintInode(int inodeNum) {
     for (int i = 0; i < len; ++i) printf("| %-5d %30s |\n", tables[i].id, tables[i].name);
 }
 void UpdateInode(Inode* inode) {
-    if (inodeBitmapChunk[inode->id] == 0) {
+    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
         printf("Inode isnt ocupied yet!\n");
         return;
     }
@@ -168,11 +264,10 @@ int UpdateInodeData(Inode* inode, char* data, size_t size) {
     return SUCCESS;
 }
 void AddLinking(Inode* inode, InodeTable table) {
-    if (inodeBitmapChunk[table.id] == 0) {
+    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
         printf("Inode doesnt exist!!!\n");
         return;
     }
-
 
     int result = UpdateInodeData(inode, (char*)&table, inodeTableSize);
     if (result == FAIL) {
@@ -199,8 +294,7 @@ int IsThisFileInFolder(Inode* inode, char* path, int type) {
 int IsPathExist(char** p, int level, int type) {
     int inodeID = rootInode;
     for (int i = 0; p[i + level] != NULL; ++i) {
-        printf("%d %s %d \n", inodeID, p[i], type);
-        inodeID = IsThisFileInFolder(&inodeChunk[inodeID], p[i], type);
+        inodeID = IsThisFileInFolder(&inodeChunk[inodeID], p[i], p[i + level + 1] == NULL ? type : _ANYTYPE);
         if (inodeID == FAIL) break;
     }
     return inodeID;
@@ -266,7 +360,7 @@ void v_unlink(char* dst) {
         return;
     }
 
-    if (--inodeChunk[dstNumber].link == 1) inodeBitmapChunk[dstNumber] = 0;
+    if (--inodeChunk[dstNumber].link == 1) FreeCell(inodeBitmapChunk, numberInode, dstNumber);
 
     Inode inode = inodeChunk[parentNumber];
 
@@ -277,7 +371,7 @@ void v_unlink(char* dst) {
         if (j == 0) continue;
         tables[i] = tables[i + j];
     }
-    // printf("%d\n", dstNumber);
+
     for (int i = 0; inode.blocks[i] != EMPTY; ++i) {
         FreeCell(dataBitmapChunk, numberChunk, inode.blocks[i]);
         inode.blocks[i] = EMPTY;
@@ -291,9 +385,10 @@ void v_unlink(char* dst) {
 
 void v_open(char* path) {
     char** splitStr = SplitString(path, "/");
-    printf("%15s\n", path);
+
     char* fileName = GetFileName(splitStr);
-    int inodeParentID = IsPathExist(splitStr, 1, _DIRECTORY), inodeChildID = IsPathExist(splitStr, 0, _FILE);
+    int inodeParentID = IsPathExist(splitStr, 1, _DIRECTORY);
+    int inodeChildID = IsPathExist(splitStr, 0, _FILE);
 
     if (inodeParentID == FAIL || inodeChildID != FAIL) {
         if (inodeParentID == FAIL) printf("Path doesnt not existed.\n");
@@ -305,13 +400,16 @@ void v_open(char* path) {
     }
 
     Inode child = CreateInode(_FILE), parent = inodeChunk[inodeParentID];
-    PrintInode(child.id);
-    InodeTable childTable; childTable.id = child.id; strcpy(childTable.name, fileName);
+
+    InodeTable childTable;
+    childTable.id = child.id; strcpy(childTable.name, fileName);
 
     UpdateInode(&child);
 
     AddLinking(&parent, childTable);
     UpdateInode(&parent);
+
+    // PrintFileStructure(inodeParentID, 0);
 
     FreeMem(splitStr);
     free(fileName);
@@ -344,55 +442,10 @@ void PrintFileStructure(int inodeNumber, int level) {
 
         if (inode.type == _DIRECTORY) PrintFileStructure(tables[i].id, level + 1);
         else {
-            // PrintInode(tables[i].id);
             if (inode.size == 0) continue;
             char data[inode.size]; ReadInode(data, &inode);
             _Print(data, inode.size);
+            puts(data);
         }
-        // PrintInode2(&inode);
     }
-}
-
-
-int main() {
-    InitParam();
-
-    Inode root = CreateInode(_DIRECTORY);
-    rootInode = root.id;
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = ".." });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "." });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "root" });
-    AddLinking(&root, (InodeTable) { .id = rootInode, .name = "" });
-
-    UpdateInode(&root);
-
-    v_mkdir("a");
-    v_mkdir("C");
-    v_mkdir("/ab/");
-    v_mkdir("/ab/d");
-    v_mkdir("ab/e/");
-    v_mkdir("ab/e/f");
-    v_mkdir("ab/e/g");
-    v_mkdir("ab/f");
-
-    v_link("/ab/ed", "a");
-    v_link("ab/e/eh", "ab/d");
-    v_mkdir("b");
-    v_open("b/bee.c");
-    // PrintInode(10);
-    v_write("b/bee.c", "Asdfasdf", 10);
-
-    // PrintFileStructure(rootInode, 0);
-    v_unlink("ab/d/");
-    v_unlink("a");
-
-    v_unlink("C");
-    // v_unlink("b/bee.c");
-
-    // PrintInode(1);
-    PrintFileStructure(rootInode, 0);
-
-
-    free(data);
-    return 0;
 }
