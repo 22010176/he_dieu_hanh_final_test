@@ -82,6 +82,7 @@ int main() {
     v_mkdir("/ab/d");
     v_mkdir("ab/e/");
     v_mkdir("ab/e/f");
+    v_mkdir("ab/e/f/h");
     v_mkdir("ab/e/g");
     v_mkdir("ab/f");
     v_link("/ab/ed", "a");
@@ -94,7 +95,6 @@ int main() {
     v_unlink("C");
 
     PrintFileStructure(rootInode, 0);
-    printf("%d %d\n", numberChunk, numberInode);
 
     _Print(inodeBitmapChunk, numberInode / 8);
     _Print(dataBitmapChunk, numberChunk / 8);
