@@ -5,6 +5,7 @@
             "label": "C/C++: g++.exe build active file",
             "command": "g++",
             "args": [
+                "-g",
                 // "-I.",
                 "-std=c++23",
                 "src/*.cpp",

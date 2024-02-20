@@ -116,9 +116,9 @@ void VSFS::InitFileSystem() {
     DEBUG(uint8_t data[Inode::GetExportSize()]);
     DEBUG(inodeData->WriteS(rootInode, inode.ExportData(data), Inode::GetExportSize()));
     DEBUG(inodeData->PrintS(rootInode));
-    // DEBUG(Inode(data).Print());
+    DEBUG(Inode(data).Print());
     DEBUG(PrintInodeFromDisk(rootInode));
-    // DEBUG(inode.Print());
+    DEBUG(inode.Print());
 }
 
 void VSFS::PrintInodeFromDisk(uint32_t inodeId) const {
