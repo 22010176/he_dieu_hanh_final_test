@@ -12,20 +12,20 @@
 // ./out/vsfs
 
 
-size_t chunkSize = 1024;                            // Chunk size in byte
-size_t diskSize = 256 * 1024;                       // Disk size in byte
-size_t inodeSize = sizeof(Inode);                   // Get Inode size (lazy writting down sizeof(Inode))
-size_t inodeTableSize = sizeof(InodeTable);         // Same as above
+size_t chunkSize = 1024;                            // Kích thước của 1 chunk (byte).
+size_t diskSize = 256 * 1024;                       // Kích thước của toàn bộ bộ nhớ (byte).
+size_t inodeSize = sizeof(Inode);                   // Lấy kích thước của một inode.
+size_t inodeTableSize = sizeof(InodeTable);         // Lấy kích thước của một inodeTable.
 size_t size_tSize = sizeof(size_t);
 size_t intSize = sizeof(int);
 size_t charSize = sizeof(char);
 
 
 char* data;                                                 // 4kb
-size_t numberInode, numberChunk;                            // Number of Inodes and Data Chunks have in disks
-char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;     // the start address of inode bitmap, data bitmap, data chunk
-Inode* inodeChunk;                                          // the start address of inode's chunk
-int rootInode;                                              // index of root inode stored in file system (usually 0)
+size_t numberInode, numberChunk;                            // Số lượng inode và data chunk có ở trong bộ nhớ.
+char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;     // Địa chỉ của inode bitmap, data bitmap và data chunk.
+Inode* inodeChunk;                                          // Địa chỉ của inode chunk.
+int rootInode;                                              // mã inode của Inode root.
 
 void InitParam();
 void InitFolder();
@@ -52,87 +52,65 @@ void PrintFileStructure(int inodeNumber, int level);
 
 
 /* TEST LIST
+v_mkdir: Tạo folder dựa vào đường dẫn đầu vào.
+    1. Kiểm tra xem thư mục cha có tồn tại ko.
+    2. Nếu thư mục cha tồn tại, thì kiểm tra xem thư mục đã được tạo ra chưa.
+    3. Nếu tạo rồi thì sẽ báo lỗi ko tạo được thư mục.
+    4. Nếu chưa tồn tại thư mục:
+        Sẽ tạo ra một inode con (Cần kiểm tra xem vị trí thư mục con trong bitmap có được chỉnh về 1 chưa).
+        Liên kết thư mục con với InodeTable của thư mục cha.
+    5. Cập nhật 2 cái trên vào disk (Lúc trước đó chỉ mới đọc và thay đổi ở trong ram, chưa trực tiếp thay đổi bộ nhớ trên disk).
 
-v_mkdir
-    Create folder at destination
-        1. Check if parent isnt exists          a
-        2. Check if the path is existed.        b
-        3. a or b true => Throw error
+v_open: Tạo ra một tệp tin ở đường dẫn
+    1. Kiểm tra xem thư mục cha có tồn tại ko.
+    2. Nếu thứ mục cha tồn tại thì kiểm tra xem tệp tin đã tồn tại trong thư mục cha chưa.
+    3. Nếu tệp tin được tạo rồi thì chương trình báo lỗi ko tạo được tệp tin.
+    4. Nếu chưa tạo tệp tin:
+        Tạo inode chưa nội dung tệp tin.
+        Liên kết nó với thư mục cha.
+    5. Cập nhật 2 inode vào disk.
 
-        4. if a or b false
-            Create child Inode (check bitmap if the bit is correct set and file type PrintInode2())
-            Link with Parent folder. (check the inode tables) Use ReadInode();
+v_link: Copy một file từ vị trí này sang một vị trí khác.
+    1. Kiểm tra xem đường dẫn nguồn có tồn tại hay ko.
+    2. Kiểm tra xem thư mục cha của đường dẫn đích có tồn tại ko.
+    3. Nếu một trong 2 cái kia ko đáp ứng thì báo lỗi.
+    4. Nếu cả 2 cái kia ổn:
+        Tạo liên kết thư cha đường dẫn đích với đường dẫn nguồn.
+    5. Cập nhật InodeTable vào disk.
 
-        5. Update it to the disk
-            Use PrintInode(inodeID) to check.
+v_unlink: Bỏ một liên kết ở trong đường dẫn đích.
+    1. Kiểm tra xem đường dẫn tồn tại hay ko.
+    2. Nếu nó không tồn tại thì báo lỗi.
+    3. Nếu nó tồn tại thì:
+        Kiểm tra xem liên kết dẫn tới nó có bằng 1 ko:
+            True    => Xóa nó + dữ liệu ở trong block
+            False   => Bỏ qua.
+        Xóa nó trong Inode Table thư mục cha.
+    4. Cập nhất cả 2 vào bộ nhớ.
 
-v_open
-    Create file at destination
-        1. Check if parent isnt exists      a
-        2. Check if the path is existed.    b
-        3. a or b true => Throw error
+v_write: Viết dữ liệu vào tệp tin đường dẫn.
+    1. Kiểm tra đường dẫn có tồn tại ko.
+    2. Nếu không tồn tại thì báo lỗi.
+    3. Nếu nó tồn tại:
+        Kiểm tra xem có phải là file ko.
+        Nếu không thì báo lỗi
+        Nếu đúng thì viết.
+    4. Cập nhật vào Inode trên disk.
 
-        4. if a or b false
-            Create child Inode (check bitmap if the bit is correct set and file type PrintInode2())
-            Link with Parent folder. (check the inode tables) Use ReadInode();
-
-        5. Update it to the disk
-            Use PrintInode(inodeID) to check.
-
-v_link
-    Linking source path to destinate path
-        1. Check if source path is exists.                          a
-        2. Check if parent folder of destinate path is existed.     b
-        3. a or b true => Throw error
-
-        4. false
-            Link the source path to destinate path. (Check the inodeTable of destinate inode);
-
-v_unlink
-    Remove item in path
-        1. Check if item exists
-        2. false -> throw error
-
-        3. true -> FILE: check if it is file or not
-            Is file: Remove it from parent inodeTable (Check Inode Table again)
-
-        4. false -> DIRECTORY: Check if folder is empty
-            True:       remove it like file
-            False:      throw error
-
-v_write
-    Write Content to the inode table
-        1. Check path like usuals
-        2. Write content (Use Print Data and check if data is corrected write)
-            Check blocks if it is correctly set.
-            Check size if it is the same with data's size
-            Check if the data in disk is the same as the the write data (can try write string to easier debug)
-
-* Delete folder isnt empty (denied); Use PrintFileStructure to test
-* Delete folder completely; Check inode bitmap, data bitmap. Use _Print to see that bit set to 0
-    eg:
-    there are 80 inodes -> bitmap:
-    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    Inode 1 is set =>
-    0100 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-
-    So if we delete it, it need to be 0
-
-* Create file, write content to it. Focus on large content that require multiple block to stored.
-    Check if data is preserved.
-    Check if file run out of pointers, will it return error log.
-
-* Check if link work, try to link it to multiples destination and print the folder structures;
-
+Cách kiểm tra Bitmap:
+1. Giả sử một bitmap có 16 phần tử:
+0000 0000 0000 0000
+2. Nếu phần từ thứ 3 đang được dùng, thì bitmap sẽ ở trạng thái sau:
+0001 0000 0000 0000
+3. Nếu ta ko dùng nữa, thì bitmap sẽ cập nhất trạng thái thành
+0000 0000 0000 0000
 */
 int main() {
     InitParam();
     InitFolder();
 
 
-    // create some directories
+    // Tạo một vài folder
     v_mkdir("a");
     v_mkdir("C");
     v_mkdir("/ab/");
@@ -143,29 +121,29 @@ int main() {
     v_mkdir("ab/e/g");
     v_mkdir("ab/f");
 
-    // Can understand that it is just copy folder
+    // Copy folder từ vị trí này sang vị trí khác.
     v_link("/ab/ed", "a");
     v_link("ab/e/eh", "ab/d");
 
-    // Create some more directory
+    // Tạo thêm một vài folder nữa.
     v_mkdir("b");
     v_mkdir("bdd");
     v_mkdir("bddd");
     v_mkdir("bddd");
 
-    // Create File
+    // Tạo file.
     v_open("a.txt");
     v_open("b/bee");
 
-    // Write to file some content
+    // Viết vào file một vài thứ.
     v_write("b/bee", "Asdfasdf", 9);
 
-    // Remove or delete item
+    // Xóa bỏ liên kết file.
     v_unlink("ab/d/");
     v_unlink("a");
     v_unlink("C");
 
-    // Print folder structure
+    // In ra màn hình cấu trúc của folder.
     PrintFileStructure(rootInode, 0);
 
     _Print(inodeBitmapChunk, numberInode / 8);
