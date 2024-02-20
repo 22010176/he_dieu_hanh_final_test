@@ -1,6 +1,9 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include <stdlib.h>
+
+#define pf                  printf
 #define class(x)            typedef struct x x; struct x
 #define max(a, b)           a > b ? a : b
 #define min(a, b)           a < b ? a : b
@@ -25,9 +28,11 @@ class (InodeTable) { int id; char name[MaxFileNameLength]; };
 class (Super) {
     char* disk;
     size_t chunkSize, diskSize, numberInode, numberChunk;
+
     char* inodeBitmapChunk, * dataBitmapChunk;
     Inode* inodeChunk;
     char* dataChunk;
+
     int rootInode;
 };
 

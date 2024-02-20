@@ -15,6 +15,10 @@
         "thread": "c",
         "types.h": "c",
         "random": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "bitmap.h": "c",
+        "stdlib_s.h": "c",
+        "malloc.h": "c",
+        "mm_malloc.h": "c"
     }
 }

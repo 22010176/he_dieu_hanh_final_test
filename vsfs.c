@@ -5,11 +5,12 @@
 
 #include "utils.h"
 #include "types.h"
+#include "bitmap.h"
 
-// gcc *.c -o out/vsfs.exe
+
+// gcc bitmap.c utils.c vsfs.c -o out/vsfs.exe
 // ./out/vsfs
 
-char* data; // 4kb
 
 size_t chunkSize = 1024;                            // Chunk size in byte
 size_t diskSize = 256 * 1024;                       // Disk size in byte
@@ -19,28 +20,27 @@ size_t size_tSize = sizeof(size_t);
 size_t intSize = sizeof(int);
 size_t charSize = sizeof(char);
 
-size_t numberInode, numberChunk;                    // Number of Inodes and Data Chunks have in disks
 
+char* data;                                                 // 4kb
+size_t numberInode, numberChunk;                            // Number of Inodes and Data Chunks have in disks
 char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;     // the start address of inode bitmap, data bitmap, data chunk
 Inode* inodeChunk;                                          // the start address of inode's chunk
-
 int rootInode;                                              // index of root inode stored in file system (usually 0)
-
-int GetFreeCell(char* bitmapChunk, int size);
-int FreeCell(char* bitmapChunk, int size, int cell);
 
 void InitParam();
 void InitFolder();
 
 Inode CreateInode(int type);
 char* ReadInode(char* _dst, Inode* inode);
-int GetFreePointer(Inode* inode);
-void PrintInodeInDisk(int inodeNum);
 void UpdateInode(Inode* inode);
-void PrintInode2(Inode* inode);
 int UpdateInodeData(Inode* inode, char* data, size_t size);
+void PrintInode(Inode* inode);
+void PrintInodeInDisk(int inodeNum);
+int GetFreePointer(Inode* inode);
 void AddLinkToInode(Inode* inode, InodeTable table);
+
 int IsThisFileInFolder(Inode* inode, char* path, int type);
+int IsPathExist(char** p, int level, int type);
 
 void v_mkdir(char* path);
 void v_link(char* _dst, char* _src);
@@ -175,35 +175,7 @@ int main() {
     return 0;
 }
 
-int CheckCell(char* bitmapChunk, int size, int cell) {
-    if (cell >= size) {
-        printf("Invalid Cell number.\n");
-        return FAIL;
-    }
-    return ReadBit(bitmapChunk[cell / 8], cell % 8);
-}
-int GetFreeCell(char* bitmapChunk, int size) {
-    int len = CalcSize(size, 8);
-    for (int i = 0; i < len; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            if (ReadBit(bitmapChunk[i], j)) continue;                                // If address is 1, continue
-            bitmapChunk[i] |= (1 << j);                                                     // Write to Bitmap
-            return i * 8 + j;
-        }
-    }
 
-    return FAIL;
-}
-int FreeCell(char* bitmapChunk, int size, int cell) {
-    if (cell >= size) {
-        printf("Invalid Cell number.\n");
-        return FAIL;
-    }
-    if (ReadBit(bitmapChunk[cell / 8], cell % 8) == 0) return SUCCESS;
-    bitmapChunk[cell / 8] -= 1 << (cell % 8);
-
-    return SUCCESS;
-}
 void InitParam() {
     data = _ca(diskSize);
 
@@ -273,7 +245,7 @@ Inode CreateInode(int type) {
     return inode;
 }
 
-void PrintInode2(Inode* inode) {
+void PrintInode(Inode* inode) {
     printf("\n\n");
 
     printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode->id, inode->type == _FILE ? "File" : "Directory", inode->link, inode->size);

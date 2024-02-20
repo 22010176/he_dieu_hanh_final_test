@@ -8,7 +8,9 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "${workspaceFolder}\\utils.c",
-                "${workspaceFolder}\\vsfs.c",
+                "${workspaceFolder}\\bitmap.c",
+                // "${workspaceFolder}\\vsfs.c",
+                "${workspaceFolder}\\fss.c",
                 "-o",
                 "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
             ],
