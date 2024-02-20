@@ -82,7 +82,7 @@ void AddLinkToInode(Inode* inode, InodeTable table);
 int CheckInodeState(int inodeNumber);
 
 void SetBlock(int index) {
-    if (index == blockIndex) return;
+    // if (index ^ blockIndex) return;
     blockIndex = index % GROUP_NUMBER;
     Super* temp = vss[blockIndex];
 

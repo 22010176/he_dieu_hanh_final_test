@@ -16,7 +16,6 @@ int GetFreeCell(char* bitmapChunk, int size) {
             return i * 8 + j;
         }
     }
-
     return FAIL;
 }
 int FreeCell(char* bitmapChunk, int size, int cell) {
