@@ -16,11 +16,16 @@ size_t size_tSize = sizeof(size_t);
 size_t intSize = sizeof(int);
 size_t charSize = sizeof(char);
 
-int indexBlock = 0;
+size_t blockSize;
+size_t chunkSize;
+size_t numberChunk;
+size_t numberInode;
+
+int blockIndex = 0;
+int rootBlock = 0;
 int rootInode;                                              // index of root inode stored in file system (usually 0)
 
 char* data;
-size_t dataSize, chunkSize, numberInode, numberChunk;       // Number of Inodes and Data Chunks have in disks
 char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;     // the start address of inode bitmap, data bitmap, data chunk
 Inode* inodeChunk;                                          // the start address of inode's chunk
 
@@ -28,18 +33,18 @@ Super* vss[GROUP_NUMBER];
 
 void PrintSuper(Super* temp) {
     printf("Disk: %p\n", temp->disk);
-    pf("Chunk Size: %5lld Disk Size: %-10lld Inode number: %-10lld Data number: %-10lld\n", temp->chunkSize, temp->diskSize, temp->numberInode, temp->numberChunk);
+    pf("Chunk Size: %-10lld Disk Size: %-10lld Inode number: %-10lld Data number: %-10lld\n", temp->chunkSize, temp->diskSize, temp->numberInode, temp->numberChunk);
     pf("inode bm add: %-30p inode add: %-30p\n", temp->inodeBitmapChunk, temp->inodeChunk);
     pf("data  bm add: %-30p data  add: %-30p\n", temp->dataBitmapChunk, temp->dataChunk);
     pf("\n");
 }
 
 void InitParam() {
-    disk = _ma(diskSize);
-    size_t blockSize = CalcSize(diskSize, GROUP_NUMBER);
-    size_t chunkSize = 256;
-    size_t numberChunk = blockSize / chunkSize;
-    size_t numberInode = CalcSize(chunkSize * 6, inodeSize);
+    disk = _ca(diskSize);
+    blockSize = CalcSize(diskSize, GROUP_NUMBER);
+    chunkSize = 256;
+    numberChunk = blockSize / chunkSize - 8;
+    numberInode = CalcSize(chunkSize * 6, inodeSize);
 
     pf("block size: %d\nchunk size: %d\nnumber chunk: %d\nnumberInode: %d\n\n", blockSize, chunkSize, numberChunk, numberInode);
 
@@ -50,20 +55,20 @@ void InitParam() {
         temp->chunkSize = chunkSize;
         temp->diskSize = blockSize;
         temp->numberInode = numberInode;
-        temp->numberChunk = numberChunk - 8;
+        temp->numberChunk = numberChunk;
 
         temp->inodeBitmapChunk = temp->disk + chunkSize;
         temp->dataBitmapChunk = temp->inodeBitmapChunk + CalcSize(chunkSize, 2);
-        temp->inodeChunk = (Inode*)temp->disk + 2 * chunkSize;
+        temp->inodeChunk = (Inode*)(temp->disk + 2 * chunkSize);
         temp->dataChunk = temp->disk + 8 * chunkSize;
 
         vss[i] = temp;
     }
-    // for (int i = 0; i < GROUP_NUMBER; ++i) PrintSuper(vss[i]);
+    for (int i = 0; i < GROUP_NUMBER; ++i) PrintSuper(vss[i]);
 }
 
 int GetBlockIndex(int index, int size) { return index / size; }
-int GetRealIndex(int block, int size, int index) { return block * size + index; }
+int GetRealIndex(int indexBlock, int sizeItem, int indexItem) { return indexBlock * sizeItem + indexItem % sizeItem; }
 int GetLogicIndex(int realIndex, int size) { return realIndex % size; }
 
 Inode CreateInode(int type);
@@ -71,18 +76,20 @@ char* ReadInode(char* _dst, Inode* inode);
 void UpdateInode(Inode* inode);
 int UpdateInodeData(Inode* inode, char* data, size_t size);
 void PrintInode(Inode* inode);
-void PrintInodeInDisk(int inodeNum);
+void PrintInodeInDisk(int inodeIndex);
 int GetFreePointer(Inode* inode);
 void AddLinkToInode(Inode* inode, InodeTable table);
+int CheckInodeState(int inodeNumber);
 
-void SetDisk(int index) {
-    Super* temp = vss[index];
+void SetBlock(int index) {
+    if (index == blockIndex) return;
+    blockIndex = index % GROUP_NUMBER;
+    Super* temp = vss[blockIndex];
 
     data = temp->disk;
-    dataSize = temp->diskSize;
-    chunkSize = temp->chunkSize;
-    numberInode = temp->numberInode;
-    numberChunk = temp->numberChunk;
+    // chunkSize = temp->chunkSize;
+    // numberInode = temp->numberInode;
+    // numberChunk = temp->numberChunk;
 
     inodeBitmapChunk = temp->inodeBitmapChunk;
     dataBitmapChunk = temp->dataBitmapChunk;
@@ -90,13 +97,16 @@ void SetDisk(int index) {
     dataChunk = temp->dataChunk;
 }
 void InitFolder() {
-    SetDisk(indexBlock);
+    SetBlock(rootBlock);
 
+    Inode inode = CreateInode(_DIRECTORY);
 
+    AddLinkToInode(&inode, (InodeTable) { .id = inode.id, .name = "." });
+    AddLinkToInode(&inode, (InodeTable) { .id = inode.id, .name = ".." });
+    AddLinkToInode(&inode, (InodeTable) { .id = inode.id, .name = "root" });
+    AddLinkToInode(&inode, (InodeTable) { .id = inode.id, .name = "" });
 
-
-
-
+    UpdateInode(&inode);
 }
 
 
@@ -104,19 +114,23 @@ int main() {
     InitParam();
     InitFolder();
 
+    PrintInodeInDisk(rootInode);
+
+
+
 
     free(disk);
     return 0;
 }
 
 Inode CreateInode(int type) {
-    int id = GetFreeCell(inodeBitmapChunk, numberInode);
-    if (id >= numberInode || id == FAIL) {
-        printf("Invalid inode");
+    if (type != _DIRECTORY && type != _FILE && type != _ANYTYPE) {
+        pf("Invalid type!!");
         return (Inode) {};
     }
+    int id = GetFreeCell(inodeBitmapChunk, numberInode);
 
-    Inode inode = { .id = id ,.type = type,.link = 0,.size = 0 };
+    Inode inode = { .id = GetRealIndex(blockIndex,numberInode,id),.link = 0,.size = 0,.type = type };
     for (int i = 0; i < MaxPointers; ++i) inode.blocks[i] = EMPTY;
 
     UpdateInode(&inode);
@@ -124,57 +138,56 @@ Inode CreateInode(int type) {
 }
 
 char* ReadInode(char* _dst, Inode* inode) {
-    for (int i = 0, offset = 0, temp = inode->size; inode->blocks[i] != EMPTY;++i) {
+    SetBlock(GetBlockIndex(inode->id, numberInode));
+
+    for (int i = 0, offset = 0, temp = inode->size; inode->blocks[i] != EMPTY && i < MaxPointers - 1; ++i) {
         size_t readSize = min(chunkSize, temp);
-        memcpy(_dst + offset, dataChunk + inode->blocks[i] * chunkSize, readSize);
+
+        int chunkIndex = inode->blocks[i];
+        int logicChunkIndex = GetLogicIndex(chunkIndex, numberChunk);
+        SetBlock(GetBlockIndex(chunkIndex, numberChunk));
+
+        memcpy(_dst + offset, dataChunk + logicChunkIndex * chunkSize, readSize);
         offset += readSize; temp -= readSize;
     }
     return _dst;
 }
 
 void UpdateInode(Inode* inode) {
-    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
-        printf("Inode isnt ocupied yet!\n");
-        return;
-    }
-    memcpy(&inodeChunk[inode->id], inode, inodeSize);
+    SetBlock(GetBlockIndex(inode->id, numberInode));
+
+    int logicIndex = GetLogicIndex(inode->id, numberInode);
+    if (!CheckInodeState(inode->id)) return;
+    memcpy(&inodeChunk[logicIndex], inode, inodeSize);
 }
 
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
-    size_t sizeRemain = CalcSize(inode->size, chunkSize) * chunkSize - inode->size;
-    int pointer = GetFreePointer(inode);
+    // Fucking hard
+}
 
-    if (sizeRemain > size && pointer > 0) {
-        memcpy(dataChunk + inode->blocks[pointer - 1] * chunkSize + inode->size % chunkSize, data, size);
-        inode->size += size;
-        return SUCCESS;
-    }
+void PrintInode(Inode* inode) {
+    printf("\n\n");
 
-    if (pointer == MaxPointers) {
-        printf("Cant not find free chunk\n");
-        return FAIL;
-    }
+    printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode->id, inode->type == _FILE ? "File" : "Directory", inode->link, inode->size);
 
-    size_t temp = size;
-    size_t offset = 0;
-    while (temp > 0) {
-        int freeChunk = GetFreeCell(dataBitmapChunk, numberChunk);
-        if (freeChunk == FAIL) {
-            printf("Run out of free chunk!!!\n");
-            return FAIL;
-        }
-        size_t writeSize = min(chunkSize, size);
-        memcpy(dataChunk + freeChunk * chunkSize, data + offset, writeSize);
+    for (int i = 0; i < MaxPointers; ++i) printf("%2d ", inode->blocks[i]);
 
-        temp -= writeSize; offset += writeSize; inode->size += writeSize;
-        inode->blocks[pointer++] = freeChunk;
+    if (inode->type == _FILE) return;
+    printf("\n");
 
-        if (pointer >= MaxPointers) {
-            printf("No more pointer.\n");
-            return FAIL;
-        }
-    }
-    return SUCCESS;
+    int len = CalcSize(inode->size, inodeTableSize);
+    if (len == 0) return;
+
+    InodeTable tables[CalcSize(inode->size, inodeTableSize)]; ReadInode((char*)tables, inode);
+    for (int i = 0; i < len; ++i) printf("| %-5d %30s |\n", tables[i].id, tables[i].name);
+}
+
+void PrintInodeInDisk(int inodeIndex) {
+    int logicIndex = GetLogicIndex(inodeIndex, numberInode);
+    if (!CheckInodeState(inodeIndex)) return;
+
+    SetBlock(GetBlockIndex(inodeIndex, numberInode));
+    PrintInode(&inodeChunk[logicIndex]);
 }
 
 int GetFreePointer(Inode* inode) {
@@ -183,17 +196,30 @@ int GetFreePointer(Inode* inode) {
 }
 
 void AddLinkToInode(Inode* inode, InodeTable table) {
-    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
-        printf("Inode doesnt exist!!!\n");
-        return;
-    }
+    if (!CheckInodeState(inode->id)) return;
 
     int result = UpdateInodeData(inode, (char*)&table, inodeTableSize);
     if (result == FAIL) {
         printf("Couldnt add link to folder, run out of space.\n");
         return;
     }
-    if (inode->id == table.id) ++inode->link;
-    else ++inodeChunk[table.id].link;
+
+    if (inode->id == table.id) {
+        ++inode->link;
+        return;
+    }
+
+    SetBlock(GetBlockIndex(table.id, numberInode));
+    ++inodeChunk[GetLogicIndex(table.id, numberInode)].link;
 }
 
+int CheckInodeState(int inodeIndex) {
+    SetBlock(GetBlockIndex(inodeIndex, numberInode));
+
+    int logicIndex = GetLogicIndex(inodeIndex, numberInode);
+    if (CheckCell(inodeBitmapChunk, numberInode, logicIndex) == 0) {
+        pf("Inode doesnt exists!!! Inode number: %d.\n", inodeIndex);
+        return 0;
+    }
+    return 1;
+}

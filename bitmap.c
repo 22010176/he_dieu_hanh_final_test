@@ -2,7 +2,7 @@
 
 int CheckCell(char* bitmapChunk, int size, int cell) {
     if (cell >= size) {
-        printf("Invalid Cell number.\n");
+        printf("Invalid Cell number: %d >= %d\n", cell, size);
         return FAIL;
     }
     return ReadBit(bitmapChunk[cell / 8], cell % 8);

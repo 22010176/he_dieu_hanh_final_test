@@ -392,18 +392,15 @@ void v_unlink(char* dst) {
         return;
     }
 
-    if (--inodeChunk[dstNumber].link == 1) {
-        Inode inode = inodeChunk[dstNumber];
-        for (int i = 0; inode.blocks[i] != EMPTY; ++i) FreeCell(dataBitmapChunk, numberChunk, inode.blocks[i]);
+    Inode child = inodeChunk[dstNumber];
+    if (--child.link == 1) {
+        for (int i = 0; child.blocks[i] != EMPTY; ++i) FreeCell(dataBitmapChunk, numberChunk, child.blocks[i]);
+        UpdateInode(&child);
         FreeCell(inodeBitmapChunk, numberInode, dstNumber);
     }
 
-    Inode inode = inodeChunk[parentNumber];
-    int len = CalcSize(inode.size, inodeTableSize);
-    if (inode.type == _DIRECTORY && len > 2) {
-        printf("There are item inside directory, cant not remove!\n");
-        return;
-    }
+    Inode parentInode = inodeChunk[parentNumber];
+    int len = CalcSize(parentInode.size, inodeTableSize);
     InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[parentNumber]);
 
     for (int i = 0, j = 0; i < len - 1;i++) {
@@ -412,13 +409,13 @@ void v_unlink(char* dst) {
         tables[i] = tables[i + j];
     }
 
-    for (int i = 0; inode.blocks[i] != EMPTY; ++i) {
-        FreeCell(dataBitmapChunk, numberChunk, inode.blocks[i]);
-        inode.blocks[i] = EMPTY;
+    for (int i = 0; parentInode.blocks[i] != EMPTY; ++i) {
+        FreeCell(dataBitmapChunk, numberChunk, parentInode.blocks[i]);
+        parentInode.blocks[i] = EMPTY;
     }
-    inode.size = 0;
-    UpdateInodeData(&inode, (char*)tables, (len - 1) * inodeTableSize);
-    UpdateInode(&inode);
+    parentInode.size = 0;
+    UpdateInodeData(&parentInode, (char*)tables, (len - 1) * inodeTableSize);
+    UpdateInode(&parentInode);
 
     FreeMem(strSplit);
 };
