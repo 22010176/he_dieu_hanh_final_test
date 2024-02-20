@@ -11,20 +11,20 @@
 
 char* data; // 4kb
 
-size_t chunkSize = 1024;
-size_t diskSize = 256 * 1024;
-size_t inodeSize = sizeof(Inode);
-size_t inodeTableSize = sizeof(InodeTable);
+size_t chunkSize = 1024;                            // Chunk size in byte
+size_t diskSize = 256 * 1024;                       // Disk size in byte
+size_t inodeSize = sizeof(Inode);                   // Get Inode size (lazy writting down sizeof(Inode))
+size_t inodeTableSize = sizeof(InodeTable);         // Same as above
 size_t size_tSize = sizeof(size_t);
 size_t intSize = sizeof(int);
 size_t charSize = sizeof(char);
 
-size_t numberInode, numberChunk;
+size_t numberInode, numberChunk;                    // Number of Inodes and Data Chunks have in disks
 
-char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;
-Inode* inodeChunk;
+char* inodeBitmapChunk, * dataBitmapChunk, * dataChunk;     // the start address of inode bitmap, data bitmap, data chunk
+Inode* inodeChunk;                                          // the start address of inode's chunk
 
-int rootInode;
+int rootInode;                                              // index of root inode stored in file system (usually 0)
 
 int GetFreeCell(char* bitmapChunk, int size);
 int FreeCell(char* bitmapChunk, int size, int cell);
