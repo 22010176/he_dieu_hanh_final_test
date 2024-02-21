@@ -52,6 +52,8 @@ void PrintFileStructure(int inodeNumber, int level);
 
 
 /* TEST LIST
+Cần tạo thêm hàm:   In trạng thái bộ nhớ của ổ cứng.
+
 v_mkdir: Tạo folder dựa vào đường dẫn đầu vào.
     1. Kiểm tra xem thư mục cha có tồn tại ko.
     2. Nếu thư mục cha tồn tại, thì kiểm tra xem thư mục đã được tạo ra chưa.

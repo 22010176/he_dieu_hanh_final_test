@@ -6,6 +6,8 @@
 #define GROUP_NUMBER                                16
 
 
+// Add 2nd indirect pointer
+
 char* disk; // 4kb
 
 size_t diskSize = 256 * 1024;                           // 4KB
@@ -82,14 +84,10 @@ void AddLinkToInode(Inode* inode, InodeTable table);
 int CheckInodeState(int inodeNumber);
 
 void SetBlock(int index) {
-    // if (index ^ blockIndex) return;
     blockIndex = index % GROUP_NUMBER;
     Super* temp = vss[blockIndex];
 
     data = temp->disk;
-    // chunkSize = temp->chunkSize;
-    // numberInode = temp->numberInode;
-    // numberChunk = temp->numberChunk;
 
     inodeBitmapChunk = temp->inodeBitmapChunk;
     dataBitmapChunk = temp->dataBitmapChunk;
@@ -161,25 +159,59 @@ void UpdateInode(Inode* inode) {
     memcpy(&inodeChunk[logicIndex], inode, inodeSize);
 }
 
+int* WriteData(int* dst, char* data, size_t size) {
+    size_t temp = size, offset = 0, k = 0, c = 0;
+
+    while (temp > 0) {
+        int chunk = GetFreeCell(dataBitmapChunk, numberChunk);
+
+        if (chunk == FAIL) for (int i = 0; i < GROUP_NUMBER; ++i) {
+            SetBlock(blockIndex + 1);
+            chunk = GetFreeCell(dataBitmapChunk, numberChunk);
+            if (chunk != FAIL) break;
+        }
+
+        if (chunk == FAIL) {
+            pf("Disk is full!\n");
+            dst[k] = EMPTY;
+            return dst;
+        }
+
+        size_t writeSize = min(chunkSize, size);
+        memcpy(dataChunk + chunk * chunkSize, data + offset, writeSize);
+        temp -= writeSize; offset += writeSize;
+        dst[k++] = GetRealIndex(blockIndex, numberChunk, chunk);
+
+        if (c++ % 12 == 0) SetBlock(blockIndex + 1);
+    }
+    dst[k] = EMPTY;
+
+    return dst;
+}
+
+int GetArrSize(int* arr) {
+    int i = 0;
+    for (; arr[i] != EMPTY; ++i);
+    return i;
+}
+
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
-    // Fucking hard
+
 }
 
 void PrintInode(Inode* inode) {
-    printf("\n\n");
-
-    printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode->id, inode->type == _FILE ? "File" : "Directory", inode->link, inode->size);
-
-    for (int i = 0; i < MaxPointers; ++i) printf("%2d ", inode->blocks[i]);
+    pf("\n\n");
+    pf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode->id, inode->type == _FILE ? "File" : "Directory", inode->link, inode->size);
+    for (int i = 0; i < MaxPointers; ++i) pf("%2d ", inode->blocks[i]);
 
     if (inode->type == _FILE) return;
-    printf("\n");
+    pf("\n");
 
     int len = CalcSize(inode->size, inodeTableSize);
     if (len == 0) return;
 
     InodeTable tables[CalcSize(inode->size, inodeTableSize)]; ReadInode((char*)tables, inode);
-    for (int i = 0; i < len; ++i) printf("| %-5d %30s |\n", tables[i].id, tables[i].name);
+    for (int i = 0; i < len; ++i) pf("| %-5d %30s |\n", tables[i].id, tables[i].name);
 }
 
 void PrintInodeInDisk(int inodeIndex) {
@@ -191,7 +223,7 @@ void PrintInodeInDisk(int inodeIndex) {
 }
 
 int GetFreePointer(Inode* inode) {
-    for (int i = 0; i < MaxPointers; ++i) if (inode->blocks[i] == EMPTY) return i;
+    for (int i = 0; i < MaxPointers - 1; ++i) if (inode->blocks[i] == EMPTY) return i;
     return MaxPointers;
 }
 
@@ -200,7 +232,7 @@ void AddLinkToInode(Inode* inode, InodeTable table) {
 
     int result = UpdateInodeData(inode, (char*)&table, inodeTableSize);
     if (result == FAIL) {
-        printf("Couldnt add link to folder, run out of space.\n");
+        pf("Couldnt add link to folder, run out of space.\n");
         return;
     }
 
