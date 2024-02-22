@@ -39,6 +39,7 @@ void PrintInodeInDisk(int inodeNum);
 int GetFreePointer(Inode* inode);
 void AddLinkToInode(Inode* inode, InodeTable table);
 int FreeInode(Inode* inode);
+void DeleteInodeTable(Inode* inode, size_t id);
 
 int IsThisFileInFolder(Inode* inode, char* path, int type);
 int IsPathExist(char** p, int level, int type);
@@ -85,9 +86,7 @@ v_unlink: Bỏ một liên kết ở trong đường dẫn đích.
     1. Kiểm tra xem đường dẫn tồn tại hay ko.
     2. Nếu nó không tồn tại thì báo lỗi.
     3. Nếu nó tồn tại thì:
-        Kiểm tra xem liên kết dẫn tới nó có bằng 1 ko:
-            True    => Xóa nó + dữ liệu ở trong block
-            False   => Bỏ qua.
+        Xóa toàn bộ item con nếu là DIRECTORY.
         Xóa nó trong Inode Table thư mục cha.
     4. Cập nhất cả 2 vào bộ nhớ.
 
@@ -112,12 +111,17 @@ int main() {
     InitParam();
     InitFolder();
 
-    char a[100];
+    // char a[100];
     // char b[1000] = "a/";
     v_mkdir("a");
     v_mkdir("b");
     v_mkdir("c");
+    v_mkdir("c/a");
+    v_mkdir("c/g");
+    v_mkdir("c/c");
     v_link("a/bd", "b");
+    PrintFileStructure(rootInode, 0);
+    PrintVSFS();
     v_unlink("c");
     // itoa(rand(), a, 16);
 
@@ -125,19 +129,19 @@ int main() {
     //     itoa(rand(), a, 16);
     //     v_link(a, "b");
     // }
-    char c[] = "ddddddddddddddd-";
-    char d[] = "dddddddddddddddfffff-";
-    for (int i = 0; i < 150; ++i) {
-        itoa(i + 1, a, 10);
-        if (rand() % 3 == 0) {
-            v_mkdir(strcat(c, a));
-            continue;
-        }
-        char* cc = strcat(d, a);
-        v_open(cc);
-        for (int i = 0; i < 10000; ++i) if (v_write(cc, "A", 2) == FAIL) break;
-        c[16] = d[22] = 0;
-    }
+    // char c[] = "ddddddddddddddd-";
+    // char d[] = "dddddddddddddddfffff-";
+    // for (int i = 0; i < 150; ++i) {
+    //     itoa(i + 1, a, 10);
+    //     if (rand() % 3 == 0) {
+    //         v_mkdir(strcat(c, a));
+    //         continue;
+    //     }
+    //     char* cc = strcat(d, a);
+    //     v_open(cc);
+    //     for (int i = 0; i < 10000; ++i) if (v_write(cc, "A", 2) == FAIL) break;
+    //     c[16] = d[22] = 0;
+    // }
 
     // for (int i = 0; i < 46; ++i) {
     //     Inode a = inodeChunk[rand() % numberInode];
@@ -189,6 +193,7 @@ int GetFreePointer(Inode* inode) {
     return MaxPointers;
 }
 char* ReadInode(char* _dst, Inode* inode) {
+    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) return NULL;
     for (int i = 0, offset = 0, temp = inode->size; inode->blocks[i] != EMPTY && i < MaxPointers;++i) {
         size_t readSize = min(chunkSize, temp);
         memcpy(_dst + offset, dataChunk + inode->blocks[i] * chunkSize, readSize);
@@ -197,8 +202,8 @@ char* ReadInode(char* _dst, Inode* inode) {
     return _dst;
 }
 void PrintInodeInDisk(int inodeNum) {
-    printf("\n\n");
     if (CheckCell(inodeBitmapChunk, numberInode, inodeNum) == 0) return;
+    printf("\n\n");
 
     Inode inode = inodeChunk[inodeNum];
     printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode.id, inode.type == _FILE ? "File" : "Directory", inode.link, inode.size);
@@ -234,6 +239,7 @@ Inode CreateInode(int type) {
 }
 
 void PrintInode(Inode* inode) {
+    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) return;
     printf("\n\n");
 
     printf("ID: %-3d TYPE: %-10s LINK: %-5d SIZE: %d\n", inode->id, inode->type == _FILE ? "File" : "Directory", inode->link, inode->size);
@@ -249,6 +255,8 @@ void PrintInode(Inode* inode) {
 }
 
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
+    if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) return FAIL;
+
     int sizeRemain = max(CalcSize(inode->size, chunkSize) * chunkSize - inode->size, 0);
     size_t temp = size;
     size_t offset = 0;
@@ -309,12 +317,42 @@ int FreeInode(Inode* inode) {
         pf("Invalid Inode num!\n");
         return FAIL;
     }
+
+    if (inode->type == _DIRECTORY) {
+        size_t len = CalcSize(inode->size, inodeTableSize);
+        InodeTable tables[len]; ReadInode((char*)tables, inode);
+        for (int i = 0; i < len;++i) {
+            if (!strcmp(tables[i].name, "..") || !strcmp(".", tables[i].name) || tables[i].id == inode->id) continue;
+            Inode child = inodeChunk[tables[i].id];
+            FreeInode(&child);
+        }
+    }
     // inode->size = inode->link = inode->type = EMPTY;
     for (int i = 0; inode->blocks[i] != EMPTY && i < MaxPointers; ++i) FreeCell(dataBitmapChunk, numberChunk, inode->blocks[i]);
 
+
     UpdateInode(inode);
     FreeCell(inodeBitmapChunk, numberInode, inode->id);
+
     return SUCCESS;
+}
+void DeleteInodeTable(Inode* inode, size_t id) {
+    int len = CalcSize(inode->size, inodeTableSize);
+    InodeTable tables[len]; ReadInode((char*)tables, inode);
+
+    for (int i = 0, j = 0; i < len - 1;i++) {
+        if (tables[i].id == id) j = 1;
+        if (j == 0) continue;
+        tables[i] = tables[i + j];
+    }
+
+    for (int i = 0; inode->blocks[i] != EMPTY; ++i) {
+        FreeCell(dataBitmapChunk, numberChunk, inode->blocks[i]);
+        inode->blocks[i] = EMPTY;
+    }
+
+    inode->size = 0;
+    UpdateInodeData(inode, (char*)tables, (len - 1) * inodeTableSize);
 }
 
 int IsThisFileInFolder(Inode* inode, char* path, int type) {
@@ -403,24 +441,25 @@ void v_unlink(char* dst) {
     }
 
     Inode child = inodeChunk[dstNumber];
-    if (--child.link == 1) FreeInode(&child);
+    FreeInode(&child);
 
     Inode parentInode = inodeChunk[parentNumber];
-    int len = CalcSize(parentInode.size, inodeTableSize);
-    InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[parentNumber]);
+    DeleteInodeTable(&parentInode, dstNumber);
+    // int len = CalcSize(parentInode.size, inodeTableSize);
+    // InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[parentNumber]);
 
-    for (int i = 0, j = 0; i < len - 1;i++) {
-        if (tables[i].id == dstNumber) j = 1;
-        if (j == 0) continue;
-        tables[i] = tables[i + j];
-    }
+    // for (int i = 0, j = 0; i < len - 1;i++) {
+    //     if (tables[i].id == dstNumber) j = 1;
+    //     if (j == 0) continue;
+    //     tables[i] = tables[i + j];
+    // }
 
-    for (int i = 0; parentInode.blocks[i] != EMPTY; ++i) {
-        FreeCell(dataBitmapChunk, numberChunk, parentInode.blocks[i]);
-        parentInode.blocks[i] = EMPTY;
-    }
-    parentInode.size = 0;
-    UpdateInodeData(&parentInode, (char*)tables, (len - 1) * inodeTableSize);
+    // for (int i = 0; parentInode.blocks[i] != EMPTY; ++i) {
+    //     FreeCell(dataBitmapChunk, numberChunk, parentInode.blocks[i]);
+    //     parentInode.blocks[i] = EMPTY;
+    // }
+    // parentInode.size = 0;
+    // UpdateInodeData(&parentInode, (char*)tables, (len - 1) * inodeTableSize);
     UpdateInode(&parentInode);
 
     FreeMem(strSplit);
@@ -478,7 +517,7 @@ void PrintFileStructure(int inodeNumber, int level) {
     InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[inodeNumber]);
     for (int i = 0; i < len; ++i) {
         if (inodeNumber == tables[i].id || !strcmp("..", tables[i].name)) continue;
-        if (tables[i].id >= numberInode) continue;
+        if (tables[i].id >= numberInode || CheckCell(inodeBitmapChunk, numberInode, tables[i].id) == 0) continue;
 
         Inode inode = inodeChunk[tables[i].id];
         printf("%*d. %s%s\n", (level + 1) * 5, tables[i].id, tables[i].name, inode.type == _FILE ? "" : "/");
