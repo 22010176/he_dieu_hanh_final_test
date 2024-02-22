@@ -185,11 +185,7 @@ void InitFolder() {
     UpdateInode(&root);
 }
 int GetFreePointer(Inode* inode) {
-    for (int i = 0; i < MaxPointers; ++i) {
-        // printf("%d %d| ", i, inode->blocks[i]);
-        if (inode->blocks[i] == EMPTY) return i;
-    }
-    // pf("\n");
+    for (int i = 0; i < MaxPointers; ++i) if (inode->blocks[i] == EMPTY) return i;
     return MaxPointers;
 }
 char* ReadInode(char* _dst, Inode* inode) {
@@ -318,6 +314,7 @@ int FreeInode(Inode* inode) {
 
     UpdateInode(inode);
     FreeCell(inodeBitmapChunk, numberInode, inode->id);
+    return SUCCESS
 }
 
 int IsThisFileInFolder(Inode* inode, char* path, int type) {
