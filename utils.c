@@ -77,7 +77,8 @@ char* GetFileName(char** path) {
 }
 uint8_t ReadBit(uint8_t x, uint8_t bit) { return (x & (1 << bit)) >> bit; }
 void _Print(char* address, size_t size) {
-    printf("\n\n");
+    if (size == 0) return;
+    printf("\n");
     for (int i = 0; i < size;++i) {
         for (int j = 0; j < 8; printf("%d", ReadBit(address[i], j++)));
         printf((i + 1) % 8 != 0 ? " " : "\n");

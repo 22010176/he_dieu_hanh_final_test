@@ -94,7 +94,7 @@ void SetBlock(int index) {
     inodeChunk = temp->inodeChunk;
     dataChunk = temp->dataChunk;
 }
-void InitFolder() {
+void InitRootFolder() {
     SetBlock(rootBlock);
 
     Inode inode = CreateInode(_DIRECTORY);
@@ -110,7 +110,7 @@ void InitFolder() {
 
 int main() {
     InitParam();
-    InitFolder();
+    InitRootFolder();
 
     PrintInodeInDisk(rootInode);
 

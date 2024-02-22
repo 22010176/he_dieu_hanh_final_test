@@ -12,8 +12,8 @@
 // ./out/vsfs
 
 
-size_t chunkSize = 1024;                            // Kích thước của 1 chunk (byte).
-size_t diskSize = 256 * 1024;                       // Kích thước của toàn bộ bộ nhớ (byte).
+size_t chunkSize = 2048;                            // Kích thước của 1 chunk (byte).
+size_t diskSize = 1024 * 1024;                       // Kích thước của toàn bộ bộ nhớ (byte).
 size_t inodeSize = sizeof(Inode);                   // Lấy kích thước của một inode.
 size_t inodeTableSize = sizeof(InodeTable);         // Lấy kích thước của một inodeTable.
 size_t size_tSize = sizeof(size_t);
@@ -38,6 +38,7 @@ void PrintInode(Inode* inode);
 void PrintInodeInDisk(int inodeNum);
 int GetFreePointer(Inode* inode);
 void AddLinkToInode(Inode* inode, InodeTable table);
+int FreeInode(Inode* inode);
 
 int IsThisFileInFolder(Inode* inode, char* path, int type);
 int IsPathExist(char** p, int level, int type);
@@ -46,10 +47,10 @@ void v_mkdir(char* path);
 void v_link(char* _dst, char* _src);
 void v_unlink(char* dst);
 void v_open(char* path);
-void v_write(char* path, char* content, size_t size);
+int v_write(char* path, char* content, size_t size);
 
 void PrintFileStructure(int inodeNumber, int level);
-
+void PrintVSFS();
 
 /* TEST LIST
 Cần tạo thêm hàm:   In trạng thái bộ nhớ của ổ cứng.
@@ -111,46 +112,53 @@ int main() {
     InitParam();
     InitFolder();
 
-
-    // Tạo một vài folder
+    char a[100];
+    // char b[1000] = "a/";
     v_mkdir("a");
-    v_mkdir("C");
-    v_mkdir("/ab/");
-    v_mkdir("/ab/d");
-    v_mkdir("ab/e/");
-    v_mkdir("ab/e/f");
-    v_mkdir("ab/e/f/h");
-    v_mkdir("ab/e/g");
-    v_mkdir("ab/f");
-
-    // Copy folder từ vị trí này sang vị trí khác.
-    v_link("/ab/ed", "a");
-    v_link("ab/e/eh", "ab/d");
-
-    // Tạo thêm một vài folder nữa.
     v_mkdir("b");
-    v_mkdir("bdd");
-    v_mkdir("bddd");
-    v_mkdir("bddd");
+    v_mkdir("c");
+    v_link("a/bd", "b");
+    v_unlink("c");
+    // itoa(rand(), a, 16);
 
-    // Tạo file.
-    v_open("a.txt");
-    v_open("b/bee");
+    // for (int i = 0; i < 9000;++i) {
+    //     itoa(rand(), a, 16);
+    //     v_link(a, "b");
+    // }
+    char c[] = "ddddddddddddddd-";
+    char d[] = "dddddddddddddddfffff-";
+    for (int i = 0; i < 150; ++i) {
+        itoa(i + 1, a, 10);
+        if (rand() % 3 == 0) {
+            v_mkdir(strcat(c, a));
+            continue;
+        }
+        char* cc = strcat(d, a);
+        v_open(cc);
+        for (int i = 0; i < 10000; ++i) if (v_write(cc, "A", 2) == FAIL) break;
+        c[16] = d[22] = 0;
+    }
 
-    // Viết vào file một vài thứ.
-    v_write("b/bee", "Asdfasdf", 9);
+    // for (int i = 0; i < 46; ++i) {
+    //     Inode a = inodeChunk[rand() % numberInode];
+    //     FreeInode(&a);
+    // }
+    // for (int i = 0; i < 20; ++i) {
+    //     itoa(rand(), a, 16);
+    //     if (rand() % 1 == 0) {
+    //         v_mkdir(a);
+    //         continue;
+    //     }
 
-    // Xóa bỏ liên kết file.
-    v_unlink("ab/d/");
-    v_unlink("a");
-    v_unlink("C");
+    //     v_open(a);
+    //     for (int i = 0; i < 10000; ++i) if (v_write(a, "A", 2) == FAIL) break;
 
-    // In ra màn hình cấu trúc của folder.
+    // }
+
     PrintFileStructure(rootInode, 0);
 
-    _Print(inodeBitmapChunk, numberInode / 8);
-    _Print(dataBitmapChunk, numberChunk / 8);
 
+    PrintVSFS();
     free(data);
     return 0;
 }
@@ -177,11 +185,15 @@ void InitFolder() {
     UpdateInode(&root);
 }
 int GetFreePointer(Inode* inode) {
-    for (int i = 0; i < MaxPointers; ++i) if (inode->blocks[i] == EMPTY) return i;
+    for (int i = 0; i < MaxPointers; ++i) {
+        // printf("%d %d| ", i, inode->blocks[i]);
+        if (inode->blocks[i] == EMPTY) return i;
+    }
+    // pf("\n");
     return MaxPointers;
 }
 char* ReadInode(char* _dst, Inode* inode) {
-    for (int i = 0, offset = 0, temp = inode->size; inode->blocks[i] != EMPTY;++i) {
+    for (int i = 0, offset = 0, temp = inode->size; inode->blocks[i] != EMPTY && i < MaxPointers;++i) {
         size_t readSize = min(chunkSize, temp);
         memcpy(_dst + offset, dataChunk + inode->blocks[i] * chunkSize, readSize);
         offset += readSize; temp -= readSize;
@@ -214,8 +226,8 @@ void UpdateInode(Inode* inode) {
 Inode CreateInode(int type) {
     int id = GetFreeCell(inodeBitmapChunk, numberInode);
     if (id >= numberInode || id == FAIL) {
-        printf("Invalid inode");
-        return (Inode) {};
+        printf("Invalid inode.\n");
+        return (Inode) { .id = -1 };
     }
 
     Inode inode = { .id = id ,.type = type,.link = 0,.size = 0 };
@@ -241,23 +253,33 @@ void PrintInode(Inode* inode) {
 }
 
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
-    size_t sizeRemain = CalcSize(inode->size, chunkSize) * chunkSize - inode->size;
+    int sizeRemain = max(CalcSize(inode->size, chunkSize) * chunkSize - inode->size, 0);
+    size_t temp = size;
+    size_t offset = 0;
+
     int pointer = GetFreePointer(inode);
 
-    if (sizeRemain > size && pointer > 0) {
-        memcpy(dataChunk + inode->blocks[pointer - 1] * chunkSize + inode->size % chunkSize, data, size);
-        inode->size += size;
-        return SUCCESS;
+    // PrintInode(inode);
+    // printf("\ninodeSize: %d sizeRemain: %lld freePointer: %d\n", inode->size, sizeRemain, pointer);
+
+    if (sizeRemain > 0 && pointer > 0) {
+        size_t writeSize = min(sizeRemain, size);
+        memcpy(dataChunk + inode->blocks[pointer - 1] * chunkSize + inode->size % chunkSize, data, writeSize);
+        inode->size += writeSize; temp -= writeSize; offset += writeSize;
     }
+    // if (temp == 0) return SUCCESS;
 
     if (pointer == MaxPointers) {
-        printf("Cant not find free chunk\n");
+        printf("Cant not find free pointer\n");
         return FAIL;
     }
 
-    size_t temp = size;
-    size_t offset = 0;
     while (temp > 0) {
+        pointer = GetFreePointer(inode);
+        if (pointer >= MaxPointers) {
+            printf("No more pointer.\n");
+            return FAIL;
+        }
         int freeChunk = GetFreeCell(dataBitmapChunk, numberChunk);
         if (freeChunk == FAIL) {
             printf("Run out of free chunk!!!\n");
@@ -267,12 +289,8 @@ int UpdateInodeData(Inode* inode, char* data, size_t size) {
         memcpy(dataChunk + freeChunk * chunkSize, data + offset, writeSize);
 
         temp -= writeSize; offset += writeSize; inode->size += writeSize;
-        inode->blocks[pointer++] = freeChunk;
+        inode->blocks[pointer] = freeChunk;
 
-        if (pointer >= MaxPointers) {
-            printf("No more pointer.\n");
-            return FAIL;
-        }
     }
     return SUCCESS;
 }
@@ -289,6 +307,17 @@ void AddLinkToInode(Inode* inode, InodeTable table) {
     }
     if (inode->id == table.id) ++inode->link;
     else ++inodeChunk[table.id].link;
+}
+int FreeInode(Inode* inode) {
+    if (numberInode <= inode->id || CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
+        pf("Invalid Inode num!\n");
+        return FAIL;
+    }
+    // inode->size = inode->link = inode->type = EMPTY;
+    for (int i = 0; inode->blocks[i] != EMPTY && i < MaxPointers; ++i) FreeCell(dataBitmapChunk, numberChunk, inode->blocks[i]);
+
+    UpdateInode(inode);
+    FreeCell(inodeBitmapChunk, numberInode, inode->id);
 }
 
 int IsThisFileInFolder(Inode* inode, char* path, int type) {
@@ -326,6 +355,10 @@ void v_mkdir(char* path) {
         return;
     }
     Inode child = CreateInode(_DIRECTORY), parent = inodeChunk[inodeParentID];
+    if (child.id == FAIL) {
+        pf("Runnout of inode.\n");
+        return;
+    }
     InodeTable childTable; childTable.id = child.id; strcpy(childTable.name, fileName);
 
     AddLinkToInode(&child, (InodeTable) { .id = parent.id, .name = ".." });
@@ -373,11 +406,7 @@ void v_unlink(char* dst) {
     }
 
     Inode child = inodeChunk[dstNumber];
-    if (--child.link == 1) {
-        for (int i = 0; child.blocks[i] != EMPTY; ++i) FreeCell(dataBitmapChunk, numberChunk, child.blocks[i]);
-        UpdateInode(&child);
-        FreeCell(inodeBitmapChunk, numberInode, dstNumber);
-    }
+    if (--child.link == 1) FreeInode(&child);
 
     Inode parentInode = inodeChunk[parentNumber];
     int len = CalcSize(parentInode.size, inodeTableSize);
@@ -429,20 +458,21 @@ void v_open(char* path) {
     FreeMem(splitStr);
     free(fileName);
 }
-void v_write(char* path, char* content, size_t size) {
+int v_write(char* path, char* content, size_t size) {
     char** splitStr = SplitString(path, "/");
     int dst = IsPathExist(splitStr, 0, _FILE);
 
     if (dst == FAIL) {
         printf("File doesnt exist: %s\n", path);
         FreeMem(splitStr);
-        return;
+        return FAIL;
     }
     Inode inode = inodeChunk[dst];
-    UpdateInodeData(&inode, content, size);
+    int success = UpdateInodeData(&inode, content, size);
     UpdateInode(&inode);
 
     FreeMem(splitStr);
+    return success;
 }
 
 void PrintFileStructure(int inodeNumber, int level) {
@@ -451,16 +481,51 @@ void PrintFileStructure(int inodeNumber, int level) {
     InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[inodeNumber]);
     for (int i = 0; i < len; ++i) {
         if (inodeNumber == tables[i].id || !strcmp("..", tables[i].name)) continue;
+        if (tables[i].id >= numberInode) continue;
 
         Inode inode = inodeChunk[tables[i].id];
         printf("%*d. %s%s\n", (level + 1) * 5, tables[i].id, tables[i].name, inode.type == _FILE ? "" : "/");
 
         if (inode.type == _DIRECTORY) PrintFileStructure(tables[i].id, level + 1);
-        else {
-            // if (inode.size == 0) continue;
-            // char data[inode.size]; ReadInode(data, &inode);
-            // _Print(data, inode.size);
-            // puts(data);
+    }
+}
+void PrintVSFS() {
+    pf("\nVSFS data:\n");
+
+    pf("\ninode bitmap: ");
+    _Print(inodeBitmapChunk, CalcSize(numberInode, 8));
+
+    pf("\ndata bitmap: ");
+    _Print(dataBitmapChunk, CalcSize(numberChunk, 8));
+
+    pf("\nInode: \n");
+    for (int i = 0; i < numberInode; ++i) {
+        if (CheckCell(inodeBitmapChunk, numberInode, i) == 0) continue;
+        Inode inode = inodeChunk[i];
+        printf("\n[ id: %-4d type: %-5s blocks: [ ", inode.id, inode.type == _FILE ? "file" : "dir");
+        for (int j = 0; inode.blocks[j] != EMPTY && j < MaxPointers; ++j) printf("%d ", inode.blocks[j]);
+        printf("],");
+    }
+
+    pf("\n\nData: \n");
+    for (int i = 0; i < numberInode; ++i) {
+        if (CheckCell(inodeBitmapChunk, numberInode, i) == 0) continue;
+        Inode inode = inodeChunk[i];
+        if (inode.type == _FILE) {
+            pf("Inode %d: [...]\n", i);
+            // char dest[inode.size]; ReadInode(dest, &inode);
+            // _Print(dest, min(inode.size, 32));
+            // pf("]\n");
+            continue;
         }
+        size_t len = CalcSize(inode.size, inodeTableSize);
+        InodeTable* tables = _ma(inode.size);
+        ReadInode((char*)tables, &inode);
+
+        pf("Inode %d: [ ", i);
+        for (int j = 0; j < len;++j) pf("(%d, %s), ", tables[j].id, tables[j].name);
+
+        pf("]\n");
+        free(tables);
     }
 }

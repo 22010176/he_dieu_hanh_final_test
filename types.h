@@ -16,13 +16,13 @@
 
 #define SUCCESS              2
 #define FULL                 1
-#define EMPTY               -1
-#define FAIL                -1
+#define EMPTY                -1
+#define FAIL                 -1
 
 #define MaxPointers          12
 #define MaxFileNameLength    28
 
-class (Inode) { int id, type, link, size, blocks[MaxPointers]; };
+class (Inode) { unsigned int id, type, link, size, blocks[MaxPointers]; };
 class (InodeTable) { int id; char name[MaxFileNameLength]; };
 
 class (Super) {
