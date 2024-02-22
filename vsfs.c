@@ -314,7 +314,7 @@ int FreeInode(Inode* inode) {
 
     UpdateInode(inode);
     FreeCell(inodeBitmapChunk, numberInode, inode->id);
-    return SUCCESS
+    return SUCCESS;
 }
 
 int IsThisFileInFolder(Inode* inode, char* path, int type) {
