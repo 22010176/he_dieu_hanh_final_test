@@ -2,8 +2,11 @@
 #include "utils.h"
 #include "bitmap.h"
 
-#define GROUP_NUMBER                                16
-#define CHUNK_SIZE                                  256
+#define GROUP_NUMBER                                10
+#define CHUNK_SIZE                                  512
+
+#define INODE_TYPE                                  1
+#define DATA_TYPE                                   2
 
 class (Address) { size_t block, offset; };
 
@@ -61,12 +64,11 @@ size_t GetRealIndex(Address localAddress, size_t itemSize) { return localAddress
 Address GetAddress(size_t index, size_t size) { return (Address) { .block = (size_t)floor(index / size), .offset = index % size }; }
 void SetBlock(size_t bIndex);
 
-
 void InitParam();
 void InitRootFolder();
 
-Address FindFreeInode(int type);
 Address* FindFreeChunk(Address _dst[], size_t size, int blockIndex);
+int FindFreeSpace(int type);
 
 Inode FindInodeByIndex(int index);
 Inode FindInodeByAddress(Address add);
@@ -100,20 +102,62 @@ void PrintVSFS();
 void PrintFileStructure();
 
 int main() {
+    srand(time(NULL));
     InitParam();
     InitRootFolder();
 
-    v_mkdir("ed");
-    v_open("ed");
-    v_mkdir("ed4");
-    v_mkdir("ed4/de");
-    v_mkdir("ed5");
-    v_mkdir("ed5/ed");
-    v_mkdir("ed445");
+    // char a[100];
+    // for (int i = 0; i < 50; ++i) {
+    //     itoa(rand(), a, 16);
+    //     v_mkdir(a);
+    // }
+    v_open("ddd");
+    char da[2000];
+    v_write("ddd", da, sizeof(da));
 
-    v_open("ads");
     PrintFileStructure(rootInode, 0);
-    // PrintInodeFromMemory(rootInode);
+    PrintInodeFromMemory(1);
+
+
+    printf("\n");
+
+    char inodes[GROUP_NUMBER][numberInode + 1];
+    char datas[GROUP_NUMBER][numberChunk + 1];
+
+    for (int i = 0; i < GROUP_NUMBER; ++i) {
+        memset(&inodes[i], '-', numberInode + 1);
+        memset(&datas[i], '-', numberChunk + 1);
+        datas[i][numberChunk] = 0;
+        inodes[i][numberInode] = 0;
+    }
+    printf("| Group | %-*s | %-*s |\n", numberInode + 14, "Inodes", numberChunk + 16, "Datas");
+
+
+    Inode root = FindInodeByIndex(rootInode);
+    size_t len = CalcSize(root.size, inodeTableSize);
+    InodeTable tables[len]; ReadInodeData((char*)tables, &root);
+
+    char c = 31;
+    for (int i = 0; i < GROUP_NUMBER;++i) for (int j = 0; j < numberInode;++j) {
+        Inode inode = FindInodeByIndex(i * numberInode + j);
+        if (inode.id == -1) continue;
+        inodes[i][j] = ++c;
+
+        for (int i = 0; i < MaxPointers;++i) {
+            if (inode.blocks[i] == EMPTY) break;
+            Address add = GetAddress(inode.blocks[i], numberChunk);
+            datas[add.block][add.offset] = c;
+        }
+
+    }
+    for (int i = 0; i < GROUP_NUMBER; ++i) {
+        printf("| %5d | %s [ %3d - %3d ] | %s [ %4d - %4d ] |\n", i, inodes[i], i * numberInode, (i + 1) * numberInode - 1, datas[i], i * numberChunk, (i + 1) * numberChunk - 1);
+    }
+    for (int i = 0; i < numberInode * GROUP_NUMBER; ++i) {
+        if (inodes[i / numberInode][i % numberInode] == '-') continue;
+        printf("Inode no.%d: %c\n", i, inodes[i / numberInode][i % numberInode]);
+    }
+
 
 
     free(disk);
@@ -136,7 +180,7 @@ void InitParam() {
     blockSize = CalcSize(diskSize, GROUP_NUMBER);
     chunkSize = CHUNK_SIZE;
     numberChunk = blockSize / chunkSize - 8;
-    numberInode = CalcSize(chunkSize * 6, inodeSize);
+    numberInode = CalcSize(chunkSize, inodeSize);
 
     pf("block size: %d\nchunk size: %d\nnumber chunk: %d\nnumberInode: %d\n\n", blockSize, chunkSize, numberChunk, numberInode);
 
@@ -150,9 +194,9 @@ void InitParam() {
         temp->numberChunk = numberChunk;
 
         temp->inodeBitmapChunk = temp->disk + chunkSize;
-        temp->dataBitmapChunk = temp->inodeBitmapChunk + CalcSize(chunkSize, 2);
-        temp->inodeChunk = (Inode*)(temp->disk + 2 * chunkSize);
-        temp->dataChunk = temp->disk + 8 * chunkSize;
+        temp->dataBitmapChunk = temp->inodeBitmapChunk + chunkSize;
+        temp->inodeChunk = (Inode*)(temp->disk + 3 * chunkSize);
+        temp->dataChunk = temp->disk + 4 * chunkSize;
 
         vss[i] = temp;
     }
@@ -180,15 +224,27 @@ void InitRootFolder() {
 
 Address* FindFreeChunk(Address _dst[], size_t len, int blockIndex) {
     SetBlock(blockIndex);
-    for (int i = 0, block = blockIndex; i < len; ++i, ++block) {
+    for (int i = 0, block = blockIndex; i < len; ++i, block = FindFreeSpace(DATA_TYPE)) {
         _dst[i] = (Address){ .block = block,.offset = GetFreeCell(dataBitmapChunk,numberChunk) };
         SetBlock(block);
     }
     return _dst;
 }
-Address FindFreeInode(int type) {
-    if (type == _DIRECTORY) SetBlock(blockIndex + 1);
-    return (Address) { .block = blockIndex, .offset = GetFreeCell(inodeBitmapChunk, numberInode) };
+int FindFreeSpace(int type) {
+    size_t sum[GROUP_NUMBER] = { 0 };
+    int limit = type == INODE_TYPE ? numberInode : numberChunk;
+
+    for (int i = 0; i < GROUP_NUMBER; ++i) {
+        SetBlock(i);
+        char* x = (type == INODE_TYPE ? inodeBitmapChunk : dataBitmapChunk);
+        for (int j = 0; j < numberInode;++j) sum[i] += CheckCell(x, limit, j);
+    }
+
+    size_t minIndex = 0;
+    for (int i = 1; i < GROUP_NUMBER; ++i) if (sum[minIndex] > sum[i]) minIndex = i;
+
+    // printf("\n");
+    return minIndex;
 }
 
 Inode CreateInode(int blockIndex, int type) {
@@ -212,6 +268,7 @@ void UpdateInode(Inode* inode) {
 Inode FindInodeByIndex(int index) { return FindInodeByAddress(GetAddress(index, numberInode)); }
 Inode FindInodeByAddress(Address add) {
     SetBlock(add.block);
+    if (CheckCell(inodeBitmapChunk, numberInode, add.offset) == 0) return (Inode) { .id = -1 };
     return inodeChunk[add.offset];
 }
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
@@ -249,11 +306,12 @@ int UpdateInodeData(Inode* inode, char* data, size_t size) {
         }
 
         Address freeChunk = freeChunks[k++];
+        SetBlock(freeChunk.block);
         if (freeChunk.offset == FAIL) {
             printf("Run out of free chunk!!!\n");
             return FAIL;
         }
-        size_t writeSize = min(chunkSize, size);
+        size_t writeSize = min(chunkSize, temp);
         memcpy(dataChunk + freeChunk.offset * chunkSize, data + offset, writeSize);
 
         temp -= writeSize; offset += writeSize; inode->size += writeSize;
@@ -357,8 +415,10 @@ int IsThisFileInFolder(Inode* inode, char* path, int type) {
     InodeTable table[len]; ReadInodeData((char*)table, inode);
 
     for (int i = 0; i < len; ++i) {
+        Address add = GetAddress(table[i].id, numberInode);
         if (strcmp(table[i].name, path)) continue;
-        if (inodeChunk[table[i].id].type == type || type == _ANYTYPE) return table[i].id;
+        SetBlock(add.block);
+        if (inodeChunk[add.offset].type == type || type == _ANYTYPE) return table[i].id;
     }
 
     return FAIL;
@@ -409,23 +469,22 @@ void v_mkdir(char* path) {
     if (inodeParentID == FAIL || inodeChildID != FAIL) {
         if (inodeParentID == FAIL) printf("Path doesnt not existed.\n");
         if (inodeChildID != FAIL) printf("File already existesd.\n");
+
         FreeMem(splitStr);
         free(fileName);
         return;
     }
-    Address parentAddress = GetAddress(inodeParentID, numberInode);
-    SetBlock(parentAddress.block);
-    Inode child = CreateInode(parentAddress.block, _DIRECTORY);
 
+    Inode child = CreateInode(FindFreeSpace(INODE_TYPE), _DIRECTORY);
     if (child.id == FAIL) {
         pf("Runnout of inode.\n");
         return;
     }
 
-    Inode parent = FindInodeByAddress(parentAddress);
-    InodeTable childTable; childTable.id = child.id;
+    // Address parentAddress = GetAddress(inodeParentID, numberInode);
+    Inode parent = FindInodeByIndex(inodeParentID);
+    InodeTable childTable = { .id = child.id };
     strcpy(childTable.name, fileName);
-
 
     AddLinkToInode(&child, (InodeTable) { .id = parent.id, .name = ".." });
     AddLinkToInode(&child, (InodeTable) { .id = child.id, .name = "." });
@@ -539,7 +598,7 @@ void PrintFileStructure(int inodeNumber, int level) {
         Inode inode = FindInodeByIndex(tables[i].id);
         Address add = GetAddress(inode.id, numberInode);
 
-        if (inodeNumber == tables[i].id || !strcmp("..", tables[i].name)) continue;
+        if (inodeNumber == tables[i].id || !strcmp("..", tables[i].name) || tables[i].id == rootInode) continue;
         if (add.offset >= numberInode || CheckCell(inodeBitmapChunk, numberInode, add.offset) == 0) continue;
 
         printf("%*d. %s%s\n", (level + 1) * 5, tables[i].id, tables[i].name, inode.type == _FILE ? "" : "/");
@@ -556,7 +615,6 @@ void PrintFFS() {
 }
 void PrintVSFS() {
     pf("\nVSFS data:\n");
-
 
     pf("\nInode: \n");
     for (int i = 0; i < numberInode; ++i) {

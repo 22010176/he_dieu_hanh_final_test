@@ -5,6 +5,9 @@
 #define GROUP_NUMBER                                16
 #define CHUNK_SIZE                                  256
 
+#define INODE_TYPE                                  1
+#define DATA_TYPE                                   2
+
 class (Address) { size_t block, offset; };
 
 /*
