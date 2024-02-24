@@ -445,21 +445,7 @@ void v_unlink(char* dst) {
 
     Inode parentInode = inodeChunk[parentNumber];
     DeleteInodeTable(&parentInode, dstNumber);
-    // int len = CalcSize(parentInode.size, inodeTableSize);
-    // InodeTable tables[len]; ReadInode((char*)tables, &inodeChunk[parentNumber]);
 
-    // for (int i = 0, j = 0; i < len - 1;i++) {
-    //     if (tables[i].id == dstNumber) j = 1;
-    //     if (j == 0) continue;
-    //     tables[i] = tables[i + j];
-    // }
-
-    // for (int i = 0; parentInode.blocks[i] != EMPTY; ++i) {
-    //     FreeCell(dataBitmapChunk, numberChunk, parentInode.blocks[i]);
-    //     parentInode.blocks[i] = EMPTY;
-    // }
-    // parentInode.size = 0;
-    // UpdateInodeData(&parentInode, (char*)tables, (len - 1) * inodeTableSize);
     UpdateInode(&parentInode);
 
     FreeMem(strSplit);

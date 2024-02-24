@@ -111,7 +111,7 @@ int main() {
     v_mkdir("ed5/ed");
     v_mkdir("ed445");
 
-    v_open("ads");
+    // v_open("ads");
     PrintFileStructure(rootInode, 0);
     // PrintInodeFromMemory(rootInode);
 
@@ -201,6 +201,7 @@ Inode CreateInode(int blockIndex, int type) {
 
     Inode inode = { .id = GetRealIndex(id,numberInode),.type = type,.link = 0,.size = 0 };
     for (int i = 0; i < MaxPointers; ++i) inode.blocks[i] = EMPTY;
+    // PrintInode(&inode);
     UpdateInode(&inode);
     return inode;
 }
@@ -415,7 +416,7 @@ void v_mkdir(char* path) {
     }
     Address parentAddress = GetAddress(inodeParentID, numberInode);
     SetBlock(parentAddress.block);
-    Inode child = CreateInode(parentAddress.block, _DIRECTORY);
+    Inode child = CreateInode(parentAddress.block + 1, _DIRECTORY);
 
     if (child.id == FAIL) {
         pf("Runnout of inode.\n");
