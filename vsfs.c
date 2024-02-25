@@ -3,13 +3,13 @@
 #include <string.h>
 #include <math.h>
 
-#include "utils.h"
-#include "types.h"
-#include "bitmap.h"
+#include "src/types.h"
+#include "src/utils.h"
+#include "src/bitmap.h"
 
 
-// gcc bitmap.c utils.c vsfs.c -o out/vsfs.exe
-// ./out/vsfs
+// gcc src/bitmap.c src/utils.c vsfs.c -o vsfs
+// ./vsfs
 
 
 size_t chunkSize = 2048;                            // Kích thước của 1 chunk (byte).

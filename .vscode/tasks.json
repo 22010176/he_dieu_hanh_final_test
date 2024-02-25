@@ -8,8 +8,7 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "-Wall",
-                "${workspaceFolder}\\utils.c",
-                "${workspaceFolder}\\bitmap.c",
+                "${workspaceFolder}\\src\\*.c",
                 "${workspaceFolder}\\vsfs.c",
                 "-o",
                 "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
@@ -30,9 +29,8 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${workspaceFolder}\\utils.c",
-                "${workspaceFolder}\\bitmap.c",
-                "${workspaceFolder}\\fss-temp.c",
+                "${workspaceFolder}\\src\\*.c",
+                "${workspaceFolder}\\fss.c",
                 "-o",
                 "${workspaceFolder}\\out\\${fileBasenameNoExtension}.exe"
             ],
