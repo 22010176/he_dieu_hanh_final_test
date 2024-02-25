@@ -5,8 +5,8 @@
 
 #define pf                  printf
 #define class(x)            typedef struct x x; struct x
-#define max(a, b)           a > b ? a : b
-#define min(a, b)           a < b ? a : b
+#define max(a, b)           (a) > (b) ? (a) : (b)
+#define min(a, b)           (a) < (b) ? (a) : (b)
 #define CalcSize(a, b)      (size_t)ceil((double)a / b)
 #define FreeMem(p)          for (int i = 0; p[i] != NULL; ++i) free(p[i]); free(p)
 

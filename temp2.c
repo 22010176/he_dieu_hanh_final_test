@@ -96,7 +96,7 @@ int IsPathExist(char** p, int level, int type);
 void v_mkdir(char* path);
 void v_open(char* path);
 int v_write(char* path, char* content, size_t size);
-void v_unlink(char* dst);
+void v_delete(char* dst);
 
 void PrintFFS();
 void PrintVSFS();
@@ -493,7 +493,7 @@ int v_write(char* path, char* content, size_t size) {
     FreeMem(splitStr);
     return success;
 }
-void v_unlink(char* dst) {
+void v_delete(char* dst) {
     char** strSplit = SplitString(dst, "/");
 
     int parentNumber = IsPathExist(strSplit, 1, _DIRECTORY);
