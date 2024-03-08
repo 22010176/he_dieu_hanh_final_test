@@ -3,26 +3,27 @@
 
 #include <stdlib.h>
 
-#define pf                  printf
-#define class(x)            typedef struct x x; struct x
-#define max(a, b)           (a) > (b) ? (a) : (b)
-#define min(a, b)           (a) < (b) ? (a) : (b)
-#define CalcSize(a, b)      (size_t)ceil((double)a / b)
-#define FreeMem(p)          for (int i = 0; p[i] != NULL; ++i) free(p[i]); free(p)
+#define pf             printf
+#define class(x)       typedef struct x x; struct x
+#define max(a, b)      (a) > (b) ? (a) : (b)
+#define min(a, b)      (a) < (b) ? (a) : (b)
+#define CalcSize(a, b) (size_t)ceil((double)a / b)
 
-#define _FILE                2
-#define _DIRECTORY           1
-#define _ANYTYPE             3
+#define FreeMem(p) for (int i = 0; p[i] != NULL; free(p[i++])); free(p)
 
-#define SUCCESS              2
-#define FULL                 1
-#define EMPTY                -1
-#define FAIL                 -1
+#define _FILE               2
+#define _DIRECTORY          1
+#define _ANYTYPE            3
 
-#define MaxPointers          12
-#define MaxFileNameLength    28
+#define SUCCESS             2
+#define FULL                1
+#define EMPTY              -1
+#define FAIL               -1
 
-class (Inode) { unsigned int id, type, link, size, blocks[MaxPointers]; };
+#define MaxPointers         12
+#define MaxFileNameLength   28
+
+class (Inode) { int id, type, link, size, blocks[MaxPointers]; };
 class (InodeTable) { int id; char name[MaxFileNameLength]; };
 
 class (Super) {

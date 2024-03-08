@@ -10,8 +10,8 @@ int CheckCell(char* bitmapChunk, int size, int cell) {
 int GetFreeCell(char* bitmapChunk, int size) {
     int len = CalcSize(size, 8);
     for (int i = 0; i < len; ++i) for (int j = 0; j < 8; ++j) {
-        if (ReadBit(bitmapChunk[i], j)) continue;                                // If address is 1, continue
-        bitmapChunk[i] |= (1 << j);                                                     // Write to Bitmap
+        if (ReadBit(bitmapChunk[i], j)) continue;
+        bitmapChunk[i] |= (1 << j);
         return i * 8 + j;
     }
 
