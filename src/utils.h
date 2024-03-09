@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
@@ -12,12 +10,10 @@
 #include <conio.h>
 #include <math.h>
 
-
 // Memory Allocate
 void* _ma(size_t size);
 void* _ca(size_t size);
 void* _re(void* p, size_t size);
-
 
 // Utilities
 char** SplitString(char* string, char* p);

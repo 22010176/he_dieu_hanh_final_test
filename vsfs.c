@@ -45,16 +45,20 @@ int v_write(char* path, char* content, size_t size);
 void PrintFileStructure(int inodeNumber, int level);
 void PrintVSFS();
 
+
 int main() {
   InitParam();
   InitFolder();
 
   v_mkdir("a");
   v_mkdir("b");
+
   v_mkdir("c");
   v_mkdir("c/a");
+
   v_mkdir("c/g");
   v_mkdir("c/c");
+
   v_link("a/bd", "b");
   v_unlink("c");
 
@@ -64,17 +68,25 @@ int main() {
   free(data);
   return 0;
 }
-//_______________________________________________________________________
+
+
 void InitParam() {
   data = _ca(diskSize);
 
   inodeBitmapChunk = data + chunkSize;
   dataBitmapChunk = data + 2 * chunkSize;
+
   inodeChunk = (Inode*)(data + 3 * chunkSize);
   dataChunk = data + 8 * chunkSize;
+
   numberInode = CalcSize(5 * chunkSize, inodeSize);
   numberChunk = CalcSize(diskSize, chunkSize) - 8;
 }
+
+
+
+
+
 void InitFolder() {
   Inode root = CreateInode(_DIRECTORY);
   rootInode = root.id;
@@ -164,7 +176,7 @@ Inode CreateInode(int type) {
   UpdateInode(&inode);
   return inode;
 }
-//_______________________________________________________________________
+
 void PrintInode(Inode* inode) {
   if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0)
     return;
@@ -186,7 +198,30 @@ void PrintInode(Inode* inode) {
   for (int i = 0; i < len; ++i)
     printf("| %-5d %30s |\n", tables[i].id, tables[i].name);
 }
+void AddLinkToInode(Inode* inode, InodeTable table) {
+  if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
+    printf("Inode doesnt exist!!!\n");
+    return;
+  }
 
+  int result = UpdateInodeData(inode, (char*)&table, inodeTableSize);
+  if (result == FAIL) {
+    printf("Couldnt add link to folder, run out of space.\n");
+    return;
+  }
+  if (inode->id == table.id) ++inode->link;
+  else ++inodeChunk[table.id].link;
+}
+int IsPathExist(char** p, int level, int type) {
+  int inodeID = rootInode;
+  for (int i = 0; p[i + level] != NULL; ++i) {
+    inodeID = IsThisFileInFolder(
+      &inodeChunk[inodeID], p[i], p[i + level + 1] == NULL ? type : _ANYTYPE
+    );
+    if (inodeID == FAIL) break;
+  }
+  return inodeID;
+}
 int UpdateInodeData(Inode* inode, char* data, size_t size) {
   if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0)
     return FAIL;
@@ -232,22 +267,6 @@ int UpdateInodeData(Inode* inode, char* data, size_t size) {
   }
   return SUCCESS;
 }
-
-void AddLinkToInode(Inode* inode, InodeTable table) {
-  if (CheckCell(inodeBitmapChunk, numberInode, inode->id) == 0) {
-    printf("Inode doesnt exist!!!\n");
-    return;
-  }
-
-  int result = UpdateInodeData(inode, (char*)&table, inodeTableSize);
-  if (result == FAIL) {
-    printf("Couldnt add link to folder, run out of space.\n");
-    return;
-  }
-  if (inode->id == table.id) ++inode->link;
-  else ++inodeChunk[table.id].link;
-}
-//_______________________________________________________________________
 int FreeInode(Inode* inode) {
   if (numberInode <= inode->id
     || !CheckCell(inodeBitmapChunk, numberInode, inode->id)) {
@@ -278,7 +297,21 @@ int FreeInode(Inode* inode) {
 
   return SUCCESS;
 }
-//_______________________________________________________________________
+int IsThisFileInFolder(Inode* inode, char* path, int type) {
+  int len = CalcSize(inode->size, inodeTableSize);
+  InodeTable table[len]; ReadInode((char*)table, inode);
+
+  for (int i = 0; i < len; ++i) {
+    if (strcmp(table[i].name, path)) continue;
+    if (inodeChunk[table[i].id].type == type || type == _ANYTYPE)
+      return table[i].id;
+  }
+
+  return FAIL;
+}
+
+
+
 void DeleteInodeTable(Inode* inode, size_t id) {
   int len = CalcSize(inode->size, inodeTableSize);
   InodeTable tables[len]; ReadInode((char*)tables, inode);
@@ -297,33 +330,33 @@ void DeleteInodeTable(Inode* inode, size_t id) {
   inode->size = 0;
   UpdateInodeData(inode, (char*)tables, (len - 1) * inodeTableSize);
 }
+void v_link(char* _dst, char* _src) {
+  char** dstSplit = SplitString(_dst, "/");
+  char** srcSplit = SplitString(_src, "/");
 
-int IsThisFileInFolder(Inode* inode, char* path, int type) {
-  int len = CalcSize(inode->size, inodeTableSize);
-  InodeTable table[len]; ReadInode((char*)table, inode);
+  char* dstName = GetFileName(dstSplit);
+  int dstInode = IsPathExist(dstSplit, 1, _DIRECTORY);
+  int srcInode = IsPathExist(srcSplit, 0, _ANYTYPE);
 
-  for (int i = 0; i < len; ++i) {
-    if (strcmp(table[i].name, path)) continue;
-    if (inodeChunk[table[i].id].type == type || type == _ANYTYPE)
-      return table[i].id;
+  if (dstInode == FAIL || srcInode == FAIL) {
+    if (dstInode == FAIL) printf("Cant not find path.\n");
+    if (srcInode == FAIL) printf("source file doesnt exist.\n");
+    return;
   }
+  InodeTable table = { .id = srcInode,.name = "" };
+  strcpy(table.name, dstName);
 
-  return FAIL;
+  AddLinkToInode(&inodeChunk[dstInode], table);
+
+  FreeMem(dstSplit);
+  FreeMem(srcSplit);
+  free(dstName);
 }
-//_______________________________________________________________________
-int IsPathExist(char** p, int level, int type) {
-  int inodeID = rootInode;
-  for (int i = 0; p[i + level] != NULL; ++i) {
-    inodeID = IsThisFileInFolder(
-      &inodeChunk[inodeID],
-      p[i],
-      p[i + level + 1] == NULL ? type : _ANYTYPE
-    );
-    if (inodeID == FAIL) break;
-  }
-  return inodeID;
-}
-//_______________________________________________________________________
+
+
+
+
+
 void v_mkdir(char* path) {
   char** splitStr = SplitString(path, "/");
 
@@ -361,29 +394,14 @@ void v_mkdir(char* path) {
   FreeMem(splitStr);
   free(fileName);
 }
-//_______________________________________________________________________
-void v_link(char* _dst, char* _src) {
-  char** dstSplit = SplitString(_dst, "/");
-  char** srcSplit = SplitString(_src, "/");
 
-  char* dstName = GetFileName(dstSplit);
-  int dstInode = IsPathExist(dstSplit, 1, _DIRECTORY);
-  int srcInode = IsPathExist(srcSplit, 0, _ANYTYPE);
 
-  if (dstInode == FAIL || srcInode == FAIL) {
-    if (dstInode == FAIL) printf("Cant not find path.\n");
-    if (srcInode == FAIL) printf("source file doesnt exist.\n");
-    return;
-  }
-  InodeTable table = { .id = srcInode,.name = "" };
-  strcpy(table.name, dstName);
 
-  AddLinkToInode(&inodeChunk[dstInode], table);
 
-  FreeMem(dstSplit);
-  FreeMem(srcSplit);
-  free(dstName);
-}
+
+
+
+
 void v_unlink(char* dst) {
   char** strSplit = SplitString(dst, "/");
 
@@ -405,10 +423,8 @@ void v_unlink(char* dst) {
 
   FreeMem(strSplit);
 };
-//_______________________________________________________________________
 void v_open(char* path) {
   char** splitStr = SplitString(path, "/");
-
   char* fileName = GetFileName(splitStr);
   int inodeParentID = IsPathExist(splitStr, 1, _DIRECTORY);
   int inodeChildID = IsPathExist(splitStr, 0, _FILE);
@@ -416,20 +432,15 @@ void v_open(char* path) {
   if (inodeParentID == FAIL || inodeChildID != FAIL) {
     if (inodeParentID == FAIL) printf("Path doesnt not existed.\n");
     if (inodeChildID != FAIL) printf("File already existesd.\n");
-
     FreeMem(splitStr);
     free(fileName);
     return;
   }
-
   Inode child = CreateInode(_FILE);
   Inode parent = inodeChunk[inodeParentID];
-
   InodeTable childTable;
   childTable.id = child.id; strcpy(childTable.name, fileName);
-
   UpdateInode(&child);
-
   AddLinkToInode(&parent, childTable);
   UpdateInode(&parent);
 
@@ -452,7 +463,6 @@ int v_write(char* path, char* content, size_t size) {
   FreeMem(splitStr);
   return success;
 }
-//_______________________________________________________________________
 void PrintFileStructure(int inodeNumber, int level) {
   if (level == 0) printf("%d .\n", inodeNumber);
   int len = CalcSize(inodeChunk[inodeNumber].size, inodeTableSize);
@@ -477,9 +487,11 @@ void PrintFileStructure(int inodeNumber, int level) {
     );
 
     if (inode.type == _DIRECTORY)
-      rintFileStructure(tables[i].id, level + 1);
+      PrintFileStructure(tables[i].id, level + 1);
   }
 }
+
+
 void PrintVSFS() {
   pf("\nVSFS data:\n");
 
@@ -522,4 +534,3 @@ void PrintVSFS() {
     free(tables);
   }
 }
-//_______________________________________________________________________

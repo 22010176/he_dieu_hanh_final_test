@@ -1,6 +1,5 @@
 #include "utils.h"
 
-//_______________________________________________________________________
 void* _ma(size_t size) {
     void* p = NULL; do p = malloc(size); while (!p);
     return p;
@@ -48,7 +47,6 @@ char** SplitStringExceptLast(char* string, char* p) {
     A[k++] = NULL;
     return (char**)_re(A, k * sizeof(char*));
 }
-//_______________________________________________________________________
 uint32_t SizeStringArr(char** string) {
     uint32_t size = 0;
     for (int i = 0; string[i] != NULL;++i)
@@ -86,4 +84,3 @@ void _Print(char* address, size_t size) {
     }
     printf("\n");
 }
-//_______________________________________________________________________
